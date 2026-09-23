@@ -9,7 +9,7 @@
     "evlog": "@evlog/cli map"
   },
   "dependencies": {
-    "@buildr/database": "workspace:*",
+    "@open-fms/database": "workspace:*",
     "@dymo-api/better-auth": "catalog:",
     "@xcvzlabs/env": "catalog:",
     "better-auth": "catalog:",

@@ -1,5 +1,5 @@
 {
-  "name": "@buildr/database",
+  "name": "@open-fms/database",
   "type": "module",
   "private": true,
   "exports": {

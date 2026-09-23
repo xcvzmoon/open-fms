@@ -1,5 +1,5 @@
 {
-  "name": "@buildr/shared",
+  "name": "@open-fms/shared",
   "type": "module",
   "private": true,
   "exports": {
@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@xcvzlabs/env": "catalog:",
-    "@buildr/database": "workspace:*",
+    "@open-fms/database": "workspace:*",
     "drizzle-orm": "catalog:",
     "valibot": "catalog:"
   },
