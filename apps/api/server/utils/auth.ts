@@ -1,5 +1,5 @@
-import { accounts, db, sessions, users, verifications } from '@buildr/database';
 import { dymoEmailPlugin } from '@dymo-api/better-auth';
+import { accounts, db, sessions, users, verifications } from '@open-fms/database';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { betterAuth } from 'better-auth/minimal';
 import { emailOTP } from 'better-auth/plugins';

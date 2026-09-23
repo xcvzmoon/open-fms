@@ -63,7 +63,7 @@ const {
   };
 });
 
-vi.mock('@buildr/database', () => ({
+vi.mock('@open-fms/database', () => ({
   db: { __fake: 'db' },
   accounts: { __fake: 'accounts' },
   sessions: { __fake: 'sessions' },

@@ -1,5 +1,5 @@
 import type * as v from 'valibot';
-import { sessions } from '@buildr/database';
+import { sessions } from '@open-fms/database';
 import { createInsertSchema, createSelectSchema, createUpdateSchema } from 'drizzle-orm/valibot';
 
 export const sessionSelectSchema = createSelectSchema(sessions);

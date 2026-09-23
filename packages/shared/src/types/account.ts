@@ -1,5 +1,5 @@
 import type * as v from 'valibot';
-import { accounts } from '@buildr/database';
+import { accounts } from '@open-fms/database';
 import { createInsertSchema, createSelectSchema, createUpdateSchema } from 'drizzle-orm/valibot';
 
 export const accountSelectSchema = createSelectSchema(accounts);

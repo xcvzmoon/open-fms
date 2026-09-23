@@ -19,7 +19,7 @@ RUN --mount=type=cache,id=buildr-pnpm-store,target=/pnpm/store,sharing=locked \
 FROM dependencies AS build
 COPY packages/database packages/database
 COPY apps/api apps/api
-RUN pnpm --filter @buildr/database run build && \
+RUN pnpm --filter @open-fms/database run build && \
     pnpm --filter api run build
 
 FROM dependencies AS migrate
