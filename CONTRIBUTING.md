@@ -1,4 +1,4 @@
-# Contributing to Buildr
+# Contributing to Open FMS
 
 Thanks for taking the time to contribute. This document covers how to set up the project, the standards we hold changes to, and how a pull request gets from open to merged.
 
@@ -6,14 +6,14 @@ By participating in this project, you agree to abide by our [Code of Conduct](./
 
 ## Ways to Contribute
 
-- **Bug reports**: open an [issue](https://github.com/xcvzmoon/buildr/issues/new/choose) using the bug report template.
-- **Feature requests**: open an issue using the feature request template, or start a [discussion](https://github.com/xcvzmoon/buildr/discussions) if the idea isn't concrete yet.
+- **Bug reports**: open an [issue](https://github.com/xcvzmoon/open-fms/issues/new/choose) using the bug report template.
+- **Feature requests**: open an issue using the feature request template, or start a [discussion](https://github.com/xcvzmoon/open-fms/discussions) if the idea isn't concrete yet.
 - **Security vulnerabilities**: do not open a public issue. Follow [`SECURITY.md`](./SECURITY.md) instead.
 - **Code and documentation**: pull requests are welcome. For anything larger than a small fix, open an issue first so we can align on direction before you invest the time.
 
 ## Development Setup
 
-Buildr is a pnpm workspace managed through [Vite+](https://viteplus.dev) (`vp`). Check `devEngines`/`engines` in `package.json` for the required pnpm and Node versions.
+Open FMS is a pnpm workspace managed through [Vite+](https://viteplus.dev) (`vp`). Check `devEngines`/`engines` in `package.json` for the required pnpm and Node versions.
 
 ```bash
 vp install

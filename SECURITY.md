@@ -1,14 +1,14 @@
 # Security Policy
 
-Buildr is a monorepo foundation for full-stack TypeScript applications: an API server (`apps/api`), a web app (`apps/web`), and shared/database packages that downstream projects build on. A vulnerability here can propagate into every project built from it, so we treat reports as high priority and ask that you report them privately rather than through a public issue.
+Open FMS is a monorepo foundation for full-stack TypeScript applications: an API server (`apps/api`), a web app (`apps/web`), and shared/database packages that downstream projects build on. A vulnerability here can propagate into every project built from it, so we treat reports as high priority and ask that you report them privately rather than through a public issue.
 
 ## Supported Versions
 
-Buildr does not yet publish tagged releases. Security fixes are made against the latest commit on `main`, and there is no long-term support branch to backport to. If you're running a fork or an older commit, update to the current `main` before relying on any advisory being applicable to your deployment.
+Open FMS does not yet publish tagged releases. Security fixes are made against the latest commit on `main`, and there is no long-term support branch to backport to. If you're running a fork or an older commit, update to the current `main` before relying on any advisory being applicable to your deployment.
 
 ## Reporting a Vulnerability
 
-**Do not open a public issue for a security vulnerability.** Report it privately through [GitHub Security Advisories](https://github.com/xcvzmoon/buildr/security/advisories/new). This opens a private channel between you and the maintainers where the report, discussion, and eventual fix stay hidden from the public until a coordinated disclosure is ready.
+**Do not open a public issue for a security vulnerability.** Report it privately through [GitHub Security Advisories](https://github.com/xcvzmoon/open-fms/security/advisories/new). This opens a private channel between you and the maintainers where the report, discussion, and eventual fix stay hidden from the public until a coordinated disclosure is ready.
 
 A useful report includes:
 
@@ -38,12 +38,12 @@ In scope:
 
 Out of scope:
 
-- Vulnerabilities in an upstream dependency's own code with no realistic exploitation path through Buildr (report those to the upstream project directly)
+- Vulnerabilities in an upstream dependency's own code with no realistic exploitation path through Open FMS (report those to the upstream project directly)
 - Denial of service through sheer traffic volume against a deployer's own infrastructure
 - Issues that require an already-compromised database or `.env` file
-- Misconfiguration in a downstream project built from Buildr, rather than in Buildr itself
+- Misconfiguration in a downstream project built from Open FMS, rather than in Open FMS itself
 - Social engineering against maintainers or contributors
 
 ## Disclosure Policy
 
-We follow coordinated disclosure: once a fix is available, we publish a GitHub Security Advisory describing the issue, its impact, and the affected commit range. Buildr does not currently run a paid bug bounty program.
+We follow coordinated disclosure: once a fix is available, we publish a GitHub Security Advisory describing the issue, its impact, and the affected commit range. Open FMS does not currently run a paid bug bounty program.

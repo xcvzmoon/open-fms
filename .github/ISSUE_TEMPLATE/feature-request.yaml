@@ -1,5 +1,5 @@
 name: Feature Request
-description: Suggest a new feature or improvement for buildr
+description: Suggest a new feature or improvement for Open FMS
 title: 'feat: '
 labels: ['enhancement']
 body:

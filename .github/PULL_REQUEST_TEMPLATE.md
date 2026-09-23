@@ -1,5 +1,5 @@
 <!--
-Thank you for contributing to Buildr!
+Thank you for contributing to Open FMS!
 
 Please make sure your PR title follows Conventional Commits, e.g.:
   feat: add project switcher
