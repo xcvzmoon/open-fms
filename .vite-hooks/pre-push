@@ -1,0 +1,20 @@
+#!/usr/bin/env sh
+# pre-push: full verification gate (mirrors lefthook parallel jobs)
+fail=0
+
+vp run check &
+check_pid=$!
+vp run -r typecheck &
+typecheck_pid=$!
+vp run test &
+test_pid=$!
+
+wait "$check_pid" || fail=1
+wait "$typecheck_pid" || fail=1
+wait "$test_pid" || fail=1
+
+if [ "$fail" -ne 0 ]; then
+  echo 'VITE+ - pre-push verification failed' >&2
+fi
+
+exit "$fail"

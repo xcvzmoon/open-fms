@@ -1,0 +1,41 @@
+{
+  "name": "web",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare",
+    "typecheck": "nuxt typecheck"
+  },
+  "dependencies": {
+    "@formisch/vue": "catalog:web",
+    "@nuxt/ui": "catalog:web",
+    "@nuxtjs/better-auth": "catalog:web",
+    "@pinia/colada": "catalog:web",
+    "@pinia/colada-nuxt": "catalog:web",
+    "@pinia/nuxt": "catalog:web",
+    "@vueuse/core": "catalog:web",
+    "@vueuse/nuxt": "catalog:web",
+    "better-auth": "catalog:",
+    "nuxt": "catalog:web",
+    "pinia": "catalog:web",
+    "pinia-plugin-persistedstate": "catalog:web",
+    "tailwindcss": "catalog:web",
+    "valibot": "catalog:",
+    "vue": "catalog:web",
+    "vue-router": "catalog:web"
+  },
+  "devDependencies": {
+    "@golar/vue": "catalog:web",
+    "@iconify-json/hugeicons": "catalog:web",
+    "@iconify-json/lucide": "catalog:web",
+    "@nuxt/cli": "catalog:web",
+    "@types/node": "catalog:",
+    "golar": "catalog:web",
+    "typescript": "catalog:",
+    "vue-tsc": "catalog:web"
+  }
+}

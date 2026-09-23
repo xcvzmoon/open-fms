@@ -1,0 +1,82 @@
+name: buildr
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-buildr}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-buildr}
+      POSTGRES_DB: ${POSTGRES_DB:-buildr}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-buildr} -d ${POSTGRES_DB:-buildr}']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - buildr
+
+  migrate:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: migrate
+    environment:
+      DB_URL: postgres://${POSTGRES_USER:-buildr}:${POSTGRES_PASSWORD:-buildr}@postgres:5432/${POSTGRES_DB:-buildr}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - buildr
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: runtime
+    restart: unless-stopped
+    env_file:
+      - path: apps/api/.env
+        required: false
+    environment:
+      PORT: 3000
+      DB_URL: postgres://${POSTGRES_USER:-buildr}:${POSTGRES_PASSWORD:-buildr}@postgres:5432/${POSTGRES_DB:-buildr}
+    ports:
+      - '${API_PORT:-3000}:3000'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    networks:
+      - buildr
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      target: runtime
+      args:
+        API_ORIGIN: ${API_ORIGIN:-http://api:3000}
+    restart: unless-stopped
+    env_file:
+      - path: apps/web/.env
+        required: false
+    environment:
+      PORT: 5173
+      API_ORIGIN: ${API_ORIGIN:-http://api:3000}
+    ports:
+      - '${WEB_PORT:-5173}:5173'
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - buildr
+
+volumes:
+  postgres-data:
+
+networks:
+  buildr:

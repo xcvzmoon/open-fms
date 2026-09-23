@@ -1,0 +1,11 @@
+name: Setup project
+description: Set up Vite+ (Node and pnpm) and install dependencies. Assumes the repo has already been checked out.
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Vite+
+      uses: voidzero-dev/setup-vp@1b32467adbe183473499fd9d5d372c3ed9641754
+      with:
+        node-version: '24'
+        cache: true
