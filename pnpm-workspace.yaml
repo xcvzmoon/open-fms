@@ -13,6 +13,10 @@ catalog:
   vite: npm:@voidzero-dev/vite-plus-core@1.0.0-rc.0
   vite-plus: 1.0.0-rc.0
 
+catalogs:
+  api:
+    nitro: 3.0.260903-beta
+
 overrides:
   vite@*: 'catalog:'
 

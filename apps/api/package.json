@@ -1,0 +1,16 @@
+{
+  "name": "open-fms-api",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "nitro build",
+    "dev": "nitro dev",
+    "preview": "nitro preview",
+    "typecheck": "tsc"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "nitro": "catalog:api",
+    "typescript": "catalog:"
+  }
+}
