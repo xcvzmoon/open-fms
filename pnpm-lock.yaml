@@ -258,6 +258,9 @@ importers:
       lru-cache:
         specifier: 'catalog:'
         version: 11.5.3
+      valibot:
+        specifier: 'catalog:'
+        version: 1.5.0(typescript@6.0.3)
     devDependencies:
       '@types/node':
         specifier: 'catalog:'

@@ -1,15 +1,19 @@
 import { defineHandler } from 'nitro';
+import { HTTPError } from 'nitro/h3';
+import * as v from 'valibot';
 
-type AuthenticatedUser = {
-  id: string;
-  email: string;
-};
+const authUserSchema = v.object({
+  id: v.pipe(v.string(), v.minLength(1)),
+  email: v.pipe(v.string(), v.email()),
+});
 
 export default defineHandler((event) => {
-  // SAFETY: middleware/auth.ts assigns the Better Auth session user before non-public handlers run.
-  const user = event.context.user as AuthenticatedUser | undefined;
+  const parsed = v.safeParse(authUserSchema, event.context.user);
+  if (!parsed.success) {
+    throw new HTTPError('Unauthorized', { status: 401 });
+  }
   return {
-    userId: user?.id ?? null,
-    email: user?.email ?? null,
+    userId: parsed.output.id,
+    email: parsed.output.email,
   };
 });
