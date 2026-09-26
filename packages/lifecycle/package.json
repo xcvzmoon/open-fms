@@ -1,5 +1,5 @@
 {
-  "name": "@open-fms/mailer",
+  "name": "@open-fms/lifecycle",
   "type": "module",
   "private": true,
   "files": [
@@ -15,8 +15,9 @@
     "typecheck": "tsc"
   },
   "dependencies": {
-    "unemail": "catalog:",
-    "valibot": "catalog:"
+    "@open-fms/database": "workspace:*",
+    "@open-fms/storage": "workspace:*",
+    "drizzle-orm": "catalog:database"
   },
   "devDependencies": {
     "@types/node": "catalog:",
