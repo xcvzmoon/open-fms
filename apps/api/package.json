@@ -8,6 +8,15 @@
     "preview": "nitro preview",
     "typecheck": "tsc"
   },
+  "dependencies": {
+    "@better-auth/api-key": "catalog:",
+    "@open-fms/database": "workspace:*",
+    "@open-fms/mailer": "workspace:*",
+    "better-auth": "catalog:",
+    "h3": "catalog:",
+    "lru-cache": "catalog:",
+    "valibot": "catalog:"
+  },
   "devDependencies": {
     "@types/node": "catalog:",
     "nitro": "catalog:api",

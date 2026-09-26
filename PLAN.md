@@ -105,7 +105,9 @@ The API, scan workers, and sweepers run in separate processes but use the same f
 
 ## 7. Access and authentication
 
-The system uses `admin_approval` and allowlisted-domain `self_signup`, one-time setup codes, admins, API key rotation, upload passes for browsers/mobile, and tenant isolation. The binding rules are below. Nitro-specific notes follow.
+Authentication is **Better Auth** (email/password sessions for admins, API keys for service callers via `@better-auth/api-key`, bearer plugin). The binding domain rules for callers, credentials, setup codes, and upload passes are below. Nitro-specific notes follow.
+
+> Implementation note: Better Auth owns hashing, session cookies, rate limiting, and key verification. FMS domain tables (`callers`, `caller_credentials`, `setup_codes`) remain the source of tenant policy (scopes, CIDR, quotas). Key material lives in `fms.auth_api_keys` and is linked to a caller through `reference_id` / `caller_credentials.key_id`.
 
 ### 7.1 Registration rules
 
