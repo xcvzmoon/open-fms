@@ -3,30 +3,17 @@ import { authSchema, db } from '@open-fms/database';
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { bearer } from 'better-auth/plugins';
+import { resolveAuthEnv } from './env.ts';
 import { getMailDispatch } from './mailer.ts';
 
-type AuthBootstrapConfig = {
-  secret?: string | undefined;
-  baseURL?: string | undefined;
-};
-
-function readAuthConfig(): AuthBootstrapConfig {
-  const config: AuthBootstrapConfig = {};
-  const secret = process.env.BETTER_AUTH_SECRET;
-  const baseURL = process.env.BETTER_AUTH_URL;
-  if (secret) {
-    config.secret = secret;
-  }
-  if (baseURL) {
-    config.baseURL = baseURL;
-  }
-  return config;
-}
+const env = resolveAuthEnv();
 
 export const auth = betterAuth({
-  ...readAuthConfig(),
+  secret: env.secret,
+  baseURL: env.baseURL,
   appName: 'Open FMS',
   basePath: '/api/auth',
+  trustedOrigins: env.trustedOrigins,
   database: drizzleAdapter(db, {
     provider: 'pg',
     schema: authSchema,
@@ -47,9 +34,6 @@ export const auth = betterAuth({
   emailVerification: {
     async sendVerificationEmail({ user, url }) {
       const mail = getMailDispatch();
-      if (process.env.NODE_ENV !== 'production') {
-        console.info('[auth] verification link for %s: %s', user.email, url);
-      }
       await mail.notify({
         type: 'auth.verify',
         email: user.email,
@@ -77,7 +61,7 @@ export const auth = betterAuth({
     },
   },
   advanced: {
-    useSecureCookies: process.env.NODE_ENV === 'production',
+    useSecureCookies: env.isProduction,
     ipAddress: {
       ipAddressHeaders: ['x-forwarded-for', 'x-real-ip'],
     },
