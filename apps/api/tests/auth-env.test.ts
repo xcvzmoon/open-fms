@@ -59,8 +59,10 @@ describe('resolveMailerEnv', () => {
 });
 
 describe('isPublicRequest', () => {
-  test('allows auth, health, and options', () => {
+  test('allows auth, signup, health, and options', () => {
     expect(isPublicRequest('/api/auth/sign-in/email', 'POST')).toBe(true);
+    expect(isPublicRequest('/api/v1/signup', 'POST')).toBe(true);
+    expect(isPublicRequest('/api/v1/signup/redeem', 'POST')).toBe(true);
     expect(isPublicRequest('/healthz', 'GET')).toBe(true);
     expect(isPublicRequest('/readyz', 'GET')).toBe(true);
     expect(isPublicRequest('/api/me', 'OPTIONS')).toBe(true);
