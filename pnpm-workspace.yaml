@@ -16,6 +16,10 @@ catalog:
 catalogs:
   api:
     nitro: 3.0.260903-beta
+  database:
+    drizzle-orm: 1.0.0-rc.5-5935859
+    drizzle-kit: 1.0.0-rc.5-5935859
+    postgres: ^3.4.9
 
 overrides:
   vite@*: 'catalog:'
@@ -25,3 +29,6 @@ peerDependencyRules:
     - vite
   allowedVersions:
     vite: '*'
+
+allowBuilds:
+  esbuild: true
