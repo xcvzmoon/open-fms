@@ -1,0 +1,27 @@
+{
+  "name": "@open-fms/storage",
+  "type": "module",
+  "private": true,
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": "./src/index.ts",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "vp pack",
+    "dev": "vp pack --watch",
+    "typecheck": "tsc"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "catalog:storage",
+    "@aws-sdk/lib-storage": "catalog:storage",
+    "@aws-sdk/s3-request-presigner": "catalog:storage"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vite-plus": "catalog:"
+  }
+}
