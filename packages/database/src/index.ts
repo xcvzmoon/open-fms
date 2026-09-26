@@ -1,3 +1,11 @@
+export {
+  authAccounts,
+  authApiKeys,
+  authSchema,
+  authSessions,
+  authUsers,
+  authVerifications,
+} from './auth/schema.ts';
 export { closeDatabase, db } from './client.ts';
 export type { Database } from './client.ts';
 export {

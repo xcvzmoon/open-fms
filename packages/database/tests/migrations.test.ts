@@ -16,11 +16,12 @@ function migrationSql(name: string): string {
 }
 
 describe('migration pipeline', () => {
-  test('has an init tables migration and a handwritten custom migration', () => {
+  test('has init, handwritten, and auth migrations', () => {
     const names = migrationNames();
-    expect(names).toHaveLength(2);
-    expect(names[0]).toMatch(/_init_fms_tables$/);
-    expect(names[1]).toMatch(/_fms_partial_indexes_and_checks$/);
+    expect(names).toHaveLength(3);
+    expect(names.some((name) => name.endsWith('_init_fms_tables'))).toBe(true);
+    expect(names.some((name) => name.endsWith('_fms_partial_indexes_and_checks'))).toBe(true);
+    expect(names.some((name) => name.endsWith('_auth_tables'))).toBe(true);
   });
 
   test('every migration ships SQL and a snapshot', () => {

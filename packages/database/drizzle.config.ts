@@ -15,7 +15,7 @@ const dbCredentials = dbUrl ? { url: dbUrl } : undefined;
 
 export default defineConfig({
   dialect: 'postgresql',
-  schema: './src/tables/index.ts',
+  schema: './src/schema-root.ts',
   out: 'migrations',
   verbose: true,
   dbCredentials,
