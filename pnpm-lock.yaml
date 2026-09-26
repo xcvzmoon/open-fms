@@ -184,12 +184,18 @@ catalogs:
     '@types/node':
       specifier: ^26
       version: 26.6.2
+    '@xcvzlabs/env':
+      specifier: ^0.1.2
+      version: 0.1.2
     genbumppush:
       specifier: ^0.0.8
       version: 0.0.8
     typescript:
       specifier: ^6.0.3
       version: 6.0.3
+    valibot:
+      specifier: ^1.5.0
+      version: 1.5.0
     vite:
       specifier: npm:@voidzero-dev/vite-plus-core@1.0.0-rc.0
       version: 1.0.0-rc.0
@@ -234,12 +240,18 @@ importers:
 
   packages/database:
     dependencies:
+      '@xcvzlabs/env':
+        specifier: 'catalog:'
+        version: 0.1.2(typescript@6.0.3)
       drizzle-orm:
         specifier: catalog:database
-        version: 1.0.0-rc.5-5935859(postgres@3.4.9)
+        version: 1.0.0-rc.5-5935859(postgres@3.4.9)(valibot@1.5.0(typescript@6.0.3))
       postgres:
         specifier: catalog:database
         version: 3.4.9
+      valibot:
+        specifier: 'catalog:'
+        version: 1.5.0(typescript@6.0.3)
     devDependencies:
       '@types/node':
         specifier: 'catalog:'
@@ -1126,6 +1138,11 @@ packages:
     engines: {node: '>=20.0.0'}
     cpu: [x64]
     os: [win32]
+
+  '@xcvzlabs/env@0.1.2':
+    resolution: {integrity: sha512-QLp9VtyfDoz2wUgvo0vMn3GWVC5ogPkN5WWfH7Qi7u0SkZgiyOou2gLQY3iQPi5jjHK085KhDaScf/Lqf1vifg==}
+    peerDependencies:
+      typescript: ^7
 
   '@yuku-codegen/binding-android-arm64@0.9.5':
     resolution: {integrity: sha512-jrOY5WM+AaAqkv51fHP1x28ifto4WgcZVzodLUyMU1jMWn5Sq+VciRdk/n8E0Ey5w4p4cWWE+m5GfXWOYh7Kzw==}
@@ -2051,6 +2068,14 @@ packages:
   unstorage@2.0.0-alpha.10:
     resolution: {integrity: sha512-6h1veZp8gnp4dGllf0tDijoXxDYymJu251IpKKkrSVH+QHL6tXFbwG85KM+CBHSgpkkgtPuIiZ9oLCLP5+1Evw==}
 
+  valibot@1.5.0:
+    resolution: {integrity: sha512-nil6AkP2TChWL43Z5uJ6GTxX01CUA+g8LWUM+N/rB9NBbkUMaUsi9PUNzlUPgoKASgmx9f7eGOYpJ04/fSa6FQ==}
+    peerDependencies:
+      typescript: '>=5'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
   vite-plus@1.0.0-rc.0:
     resolution: {integrity: sha512-yEnHJhd231DLe+2ZNcTf6eNHkxkgrBEQQTGsz7padndcq0Ro8tF2QwdBBxPybY0lG+lckZKR9SDJc6qv7Kdm9w==}
     engines: {node: ^22.18.0 || ^24.11.0 || >=26.0.0}
@@ -2703,6 +2728,10 @@ snapshots:
   '@voidzero-dev/vite-plus-win32-x64-msvc@1.0.0-rc.0':
     optional: true
 
+  '@xcvzlabs/env@0.1.2(typescript@6.0.3)':
+    dependencies:
+      typescript: 6.0.3
+
   '@yuku-codegen/binding-android-arm64@0.9.5':
     optional: true
 
@@ -2889,9 +2918,10 @@ snapshots:
       get-tsconfig: 4.14.3
       jiti: 2.7.0
 
-  drizzle-orm@1.0.0-rc.5-5935859(postgres@3.4.9):
+  drizzle-orm@1.0.0-rc.5-5935859(postgres@3.4.9)(valibot@1.5.0(typescript@6.0.3)):
     optionalDependencies:
       postgres: 3.4.9
+      valibot: 1.5.0(typescript@6.0.3)
 
   env-runner@0.2.3:
     dependencies:
@@ -3342,6 +3372,10 @@ snapshots:
       pathe: 2.0.3
 
   unstorage@2.0.0-alpha.10: {}
+
+  valibot@1.5.0(typescript@6.0.3):
+    optionalDependencies:
+      typescript: 6.0.3
 
   vite-plus@1.0.0-rc.0(@types/node@26.6.2)(@vitest/ui@5.0.1)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.1):
     dependencies:

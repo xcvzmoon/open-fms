@@ -8,8 +8,10 @@ catalogMode: strict
 catalog:
   '@oxlint/plugins': ^1.83.0
   '@types/node': ^26
+  '@xcvzlabs/env': ^0.1.2
   genbumppush: ^0.0.8
   typescript: ^6.0.3
+  valibot: ^1.5.0
   vite: npm:@voidzero-dev/vite-plus-core@1.0.0-rc.0
   vite-plus: 1.0.0-rc.0
 

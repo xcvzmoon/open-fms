@@ -21,8 +21,10 @@
     "check": "drizzle-kit check"
   },
   "dependencies": {
+    "@xcvzlabs/env": "catalog:",
     "drizzle-orm": "catalog:database",
-    "postgres": "catalog:database"
+    "postgres": "catalog:database",
+    "valibot": "catalog:"
   },
   "devDependencies": {
     "@types/node": "catalog:",
