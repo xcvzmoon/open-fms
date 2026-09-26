@@ -7,7 +7,7 @@
 - [x] **T5** Complete PLAN.md gaps: full registration rules, build order, complete invariant list, presigned-GET revocation decision
 - [x] **T6** Auth: Better Auth (email/password sessions, API keys, bearer), H3 middleware, cross-instance rate limiting
 - [x] **T7** Registration flows: setup codes, admin approval, allowlisted `self_signup`, API key rotation/revocation, upload passes
-- [ ] **T8** Storage adapter: one AWS SDK v3 S3 adapter, backend selection by `storage_backends` row, presigner, path-style config, no SDK imports outside the adapter
+- [x] **T8** Storage adapter: one AWS SDK v3 S3 adapter, backend selection by `storage_backends` row, presigner, path-style config, no SDK imports outside the adapter
 - [ ] **T9** File lifecycle module: guarded state machine with `row_version`, sealing, atomic enqueue transaction, promotion, abort/expiry, quota reserve/release — the single test surface
 - [ ] **T10** Upload routes: streaming proxy single (body + in-flight SHA-256), part-based resumable, direct presigned PUT, complete/abort with `Idempotency-Key`
 - [ ] **T11** Scan worker: `FOR UPDATE SKIP LOCKED` claim, SHA-256, `file-type` sniff, structure/archive-bomb checks, ClamAV `INSTREAM`, verdict submitted to lifecycle only
