@@ -262,9 +262,15 @@ importers:
       '@open-fms/database':
         specifier: workspace:*
         version: link:../../packages/database
+      '@open-fms/lifecycle':
+        specifier: workspace:*
+        version: link:../../packages/lifecycle
       '@open-fms/mailer':
         specifier: workspace:*
         version: link:../../packages/mailer
+      '@open-fms/storage':
+        specifier: workspace:*
+        version: link:../../packages/storage
       better-auth:
         specifier: 'catalog:'
         version: 1.7.6(drizzle-kit@1.0.0-rc.5-5935859)(drizzle-orm@1.0.0-rc.5-5935859(postgres@3.4.9)(valibot@1.5.0(typescript@6.0.3))(zod@4.6.5))(vitest@5.0.1)

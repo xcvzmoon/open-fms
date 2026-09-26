@@ -21,6 +21,7 @@ export {
   type CallerCredentialPolicy,
   type CallerRecord,
 } from './queries/callers.ts';
+export { loadFileForCaller, type FileRecord } from './queries/files.ts';
 export {
   approveCaller,
   consumeUploadPass,
