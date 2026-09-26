@@ -1,10 +1,7 @@
 import { defineHandler } from 'nitro';
 import { HTTPError, readBody } from 'nitro/h3';
 import * as v from 'valibot';
-import {
-  handleRotateCredential,
-  toRegistrationFailure,
-} from '../../../../../../../registration/service.ts';
+import { handleRotateCredential, toRegistrationFailure } from '~/server/registration/service.ts';
 
 const schema = v.object({
   newSecret: v.pipe(v.string(), v.minLength(32)),
