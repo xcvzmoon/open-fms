@@ -39,6 +39,11 @@ export {
   type IssuedUploadPass,
   type SignupSettings,
 } from './queries/registration.ts';
+export {
+  loadDefaultStorageBackend,
+  loadStorageBackend,
+  type StorageBackendRecord,
+} from './queries/storage-backends.ts';
 export { fmsSchema } from './schema.ts';
 export {
   generateHashedToken,
