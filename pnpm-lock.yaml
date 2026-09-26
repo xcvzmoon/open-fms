@@ -196,6 +196,9 @@ catalogs:
     genbumppush:
       specifier: ^0.0.8
       version: 0.0.8
+    h3:
+      specifier: ^2.0.1-rc.32
+      version: 2.0.1-rc.32
     lru-cache:
       specifier: ^11.1.0
       version: 11.5.3
@@ -255,6 +258,9 @@ importers:
       better-auth:
         specifier: 'catalog:'
         version: 1.7.6(drizzle-kit@1.0.0-rc.5-5935859)(drizzle-orm@1.0.0-rc.5-5935859(postgres@3.4.9)(valibot@1.5.0(typescript@6.0.3))(zod@4.6.5))(vitest@5.0.1)
+      h3:
+        specifier: 'catalog:'
+        version: 2.0.1-rc.32(crossws@0.4.12(srvx@1.0.5))(ocache@0.3.0)
       lru-cache:
         specifier: 'catalog:'
         version: 11.5.3

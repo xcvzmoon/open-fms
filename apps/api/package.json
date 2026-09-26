@@ -13,6 +13,7 @@
     "@open-fms/database": "workspace:*",
     "@open-fms/mailer": "workspace:*",
     "better-auth": "catalog:",
+    "h3": "catalog:",
     "lru-cache": "catalog:",
     "valibot": "catalog:"
   },

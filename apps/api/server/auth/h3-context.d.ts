@@ -1,4 +1,4 @@
-import type { Session } from '../auth/auth.ts';
+import type { Session } from './auth.ts';
 
 declare module 'h3' {
   interface H3EventContext {
@@ -6,5 +6,3 @@ declare module 'h3' {
     session?: Session['session'];
   }
 }
-
-export {};
