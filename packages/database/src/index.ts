@@ -21,7 +21,33 @@ export {
   type CallerCredentialPolicy,
   type CallerRecord,
 } from './queries/callers.ts';
+export {
+  approveCaller,
+  consumeUploadPass,
+  createSelfSignupCaller,
+  defaultSignupSettings,
+  isEmailDomainAllowed,
+  issueSetupCode,
+  loadSignupSettings,
+  mintUploadPass,
+  purgeExpiredSetupCodes,
+  redeemSetupCode,
+  revokeCallerCredential,
+  rotateCallerCredential,
+  saveSignupSettings,
+  type IssuedSetupCode,
+  type IssuedUploadPass,
+  type SignupSettings,
+} from './queries/registration.ts';
 export { fmsSchema } from './schema.ts';
+export {
+  generateHashedToken,
+  generateToken,
+  hashToken,
+  verifyTokenHash,
+  type GeneratedToken,
+  type TokenPepper,
+} from './security/tokens.ts';
 export {
   auditEvents,
   callerCredentials,
@@ -33,6 +59,7 @@ export {
   serviceSettings,
   setupCodes,
   storageBackends,
+  uploadPasses,
   uploadParts,
   uploadSessions,
 } from './tables/index.ts';
