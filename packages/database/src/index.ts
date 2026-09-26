@@ -15,6 +15,12 @@ export {
   TIMESTAMP_CONFIG,
 } from './helpers/index.ts';
 export type { GenerateTimestampsWithAuditOptions } from './helpers/index.ts';
+export {
+  loadCallerContext,
+  type CallerContext,
+  type CallerCredentialPolicy,
+  type CallerRecord,
+} from './queries/callers.ts';
 export { fmsSchema } from './schema.ts';
 export {
   auditEvents,
