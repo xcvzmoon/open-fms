@@ -17,14 +17,6 @@ export type MailEvent =
       code: string;
     };
 
-export type MailEventWire = {
-  type: string;
-  email?: string | undefined;
-  verifyUrl?: string | undefined;
-  resetUrl?: string | undefined;
-  code?: string | undefined;
-};
-
 export const mailEventSchema = v.variant('type', [
   v.object({
     type: v.literal('auth.verify'),

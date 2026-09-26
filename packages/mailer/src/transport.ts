@@ -29,11 +29,12 @@ export function createMailer(env: MailerEnv) {
   });
 }
 
-export async function sendMailEvent(event: MailEvent, env: MailerEnv): Promise<void> {
-  const email = createMailer(env);
-  const message = renderMailEvent(event);
-  const { error } = await email.send(message);
+export async function sendMailEvent(
+  email: ReturnType<typeof createMailer>,
+  event: MailEvent,
+): Promise<void> {
+  const { error } = await email.send(renderMailEvent(event));
   if (error) {
-    throw new Error(`Mail send failed: ${error.code} ${error.message}`);
+    throw new Error(`MAIL_SEND_FAILED: ${error.code} ${error.message}`);
   }
 }
