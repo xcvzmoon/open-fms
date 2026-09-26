@@ -105,7 +105,77 @@ The API, scan workers, and sweepers run in separate processes but use the same f
 
 ## 7. Access and authentication
 
-The system uses `admin_approval` and allowlisted-domain `self_signup`, one-time setup codes, admins, API key rotation, upload passes for browsers/mobile, and tenant isolation. The exact registration and authorization rules still need to be written here before those paths are implemented. Nitro-specific notes:
+The system uses `admin_approval` and allowlisted-domain `self_signup`, one-time setup codes, admins, API key rotation, upload passes for browsers/mobile, and tenant isolation. The binding rules are below. Nitro-specific notes follow.
+
+### 7.1 Registration rules
+
+Caller kinds: `app` (ordinary service or product integration) and `admin` (operator console). Admin callers are only created by an existing admin or by an operator with direct database access during bootstrap. Self-signup never creates an `admin` caller.
+
+Signup sources:
+
+| Source                     | Who                                                        | Result                                                                                 |
+| -------------------------- | ---------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `admin_approval` (default) | Admin invites or an operator seeds the caller              | Caller starts `active` after the setup code is redeemed; no public email loop          |
+| `self_signup`              | A person or service with an email in an allowlisted domain | Caller starts `pending_verification` until the email is verified and an admin approves |
+
+`self_signup` is gated by `service_settings.signup`:
+
+- `mode`: `disabled` | `admin_approval` | `self_signup` (default `admin_approval`)
+- `allowedDomains`: exact-domain allowlist (no wildcard suffixes). Matching is case-insensitive on the email domain only. Plus-addressing is ignored for the domain check (take the domain after `@`).
+- `requireAdminApproval`: when `true`, even verified `self_signup` callers stay `pending_verification` until an admin activates them. Default `true`.
+- `maxPendingDays`: pending signups older than this are deleted by the sweeper. Default `14`.
+
+Email verification: the signup flow sends a single-use code (hashed like setup codes) to `owner_email`. On redeem, set `owner_verified_at = now()` and keep `status = pending_verification` until approval. Unverified owners cannot issue API keys.
+
+Admin approval: an admin sets `status = active`. Rejection deletes the caller or sets `status = disabled` with an audit event. Activation is append-only in `audit_events`; it is not reversible without an explicit disable.
+
+Bootstrap (first admin): when no `admin` caller exists, an operator runs a documented out-of-band seed (CLI or one-time migration), which creates the first `admin` caller and a setup code. The seed must not leave a default password or key in the database.
+
+### 7.2 API keys
+
+A credential row is `caller_credentials` with `key_id` (public, used in the Authorization header lookup) and `secretHash` (HMAC-SHA256 of the secret under a versioned pepper).
+
+- Header: `Authorization: Bearer fms_<keyId>_<secret>`. The middleware looks up by `key_id` only, then compares `secretHash` with `timingSafeEqual`.
+- Lifetime: 180 days by default (`expiresAt`). Expired keys fail authentication; they are not deleted until the purge sweeper.
+- Rotation: `POST /v1/callers/{id}/keys/{keyId}/rotate` issues a new secret under the same `key_id` for a short overlap window (default 24 hours, stored as `rotated_from`/`rotated_at` in credential metadata or a replacement row). The old secret is revoked when the window ends or immediately on `DELETE`.
+- Revocation: `DELETE` sets `revoked_at` and `revoked_reason`. Revoked keys fail authentication immediately; LRU cache entries for that `key_id` are dropped or allowed to expire within the 30s TTL, whichever comes first. Prefer dropping on revoke.
+- Scope: `scopes` is a non-empty array for `restricted` keys. `standard` keys inherit the caller capabilities (`allowDirectUpload`, `allowDirectDownload`, size, content types). Missing scope denies the action.
+- CIDR: when `allowed_cidrs` is non-empty, the request peer address must match one entry.
+- `last_used_at` is updated on successful authentication (best effort; failures must not fail the request).
+
+Tenant isolation: every authenticated request carries exactly one `caller_id`. Rows are always filtered by that id. Admin callers may act across tenants only on `/v1/admin/*` and `/v1/callers/*` routes. A caller can never read or mutate another caller's files, usage, or credentials.
+
+### 7.3 Setup codes
+
+Setup codes are one-time tokens that bind a new credential to a caller created in advance (invite) or during signup.
+
+- Code: 32 random bytes, shown once, stored as `codeHash` (HMAC-SHA256 with the same pepper scheme as API keys).
+- Lifetime: 24 hours from issue. After `redeemed_at` is set, the code cannot be reused. Expired unredeemed codes are deleted by the sweeper.
+- Redeem: `POST /v1/signup/redeem` consumes a code, creates the first API key (or attaches a verified owner), and writes an audit event.
+- Setup codes are never logged. Responses return the plaintext code only at issue time.
+
+### 7.4 Upload passes
+
+Upload passes are short-lived tokens for browsers and mobile clients that must upload without embedding a long-lived API key.
+
+- Mint: `POST /v1/uploads/{id}/grants` with a normal API key (or admin). Issues an opaque token bound to exactly one `file_id` and one `caller_id`.
+- Lifetime: 15 minutes (starting default). Stored as a hash; plaintext returned once.
+- Scope: upload endpoints only (`PUT .../content`, `PUT .../parts/{n}`, `complete`, `abort`). They cannot download, list, or mint further passes.
+- Auth path: same middleware, different authenticator branch. On success, set `event.context.caller` from the pass's caller and `event.context.fileId` to the bound file. Mismatch of file id in the route vs pass is `403`.
+- Rate limit: passes share the caller's `rate_limit_per_sec` bucket.
+
+### 7.5 Authorization summary
+
+| Capability           | Enforced by                                                      |
+| -------------------- | ---------------------------------------------------------------- |
+| File list/get/delete | Active caller + owning `caller_id`                               |
+| Upload (proxy)       | Active caller + scopes + size/type limits                        |
+| Upload (direct)      | `allowDirectUpload` on the caller                                |
+| Download content     | Active caller with `allowDirectDownload`; always proxied (§18.4) |
+| Rescan, settings     | `admin` caller only                                              |
+| Cross-tenant read    | Denied except explicit admin routes                              |
+
+Nitro-specific notes:
 
 - **Auth as H3 middleware:** an event handler in `server/middleware/` that runs before route handlers, reads the `Authorization` header, looks up the key (with an in-memory LRU cache, e.g. `lru-cache`, TTL ~30s), and attaches `event.context.caller` for downstream handlers.
 - **Key hashing:** `crypto.createHmac('sha256', pepper).update(secret).digest()`, stored as `bytea` via Drizzle. Peppers are versioned and loaded from the secrets manager at boot (or fetched and cached with periodic refresh).
@@ -123,7 +193,7 @@ The three upload modes are proxy single, proxy parts/resumable, and direct. H3-s
 
 ## 9. Storage adapter
 
-Use one internal S3 adapter backed by the AWS SDK v3. It selects the configured endpoint, credentials, region, and buckets for each file's `storage_backend_id`. Configure path-style addressing per backend when required. The adapter contains S3 requests and translates their results for the file lifecycle module; routes and scan workers do not import `@aws-sdk/*` or choose bucket names.
+Use one internal S3 adapter backed by the AWS SDK v3. It selects the configured endpoint, credentials, region, and buckets for each file's `storage_backend_id`. Configure path-style addressing per backend when required. The adapter contains S3 requests and translates their results for the file lifecycle module; routes and scan workers do not import `@aws-sdk/*` or choose bucket names. Presigning covers upload (PUT) only; GET presign is omitted (§18.4).
 
 Do not publish a `StorageDriver` interface that repeats S3 operations. RustFS, MinIO, and AWS S3 are deployments of the same adapter, subject to the compatibility tests in section 19. Add a separate storage seam only when an actual second adapter needs different behavior. Keep storage operations private to the lifecycle implementation in the meantime.
 
@@ -140,7 +210,7 @@ The file lifecycle module coordinates these rules across HTTP requests, scan wor
 - ClamAV limits: prove that `clamd.conf`'s `StreamMaxLength` and `MaxFileSize` cover the configured maximum file size, or lower that maximum. The starting default is 1 GiB.
 - Promotion: the lifecycle module checks the sealed object's ETag, copies it to clean storage only if the backend's tested copy behavior preserves that check, verifies the clean object, then transitions the file to `clean`. It deletes the sealed object asynchronously after that transition. Do not enable uploads on a backend without a proven safe promotion path.
 - Reconciliation: a scheduled Nitro task asks the lifecycle module to compare PostgreSQL state with storage state and repair or alert. It does not make independent status changes.
-- Downloads: the lifecycle module checks authoritative `clean` state and resolves the stored backend and object before a proxy stream or short presigned GET (1-5 min) is returned. The H3 route handles the HTTP response and range headers. Direct downloads require an explicit caller capability. A presigned GET remains usable until expiry even if the database state changes; section 18 records the policy decision needed before enabling it.
+- Downloads: the lifecycle module checks authoritative `clean` state and resolves the stored backend and object before a proxy stream is returned. The H3 route handles the HTTP response and range headers. Direct downloads require an explicit caller capability. Presigned GET is not issued in v1; see §18.4 (immediate revocation).
 - Object keys from `{callerId}/{prefix}/{fileId}`, generated server-side only; filenames are display metadata, validated for length/encoding/NUL but never used as a path.
 - Quotas: the lifecycle module reserves `bytes_reserved` at upload start, converts it to `bytes_used` on completion, releases it on abort/expiry, and maintains `file_count`. A scheduled task requests reconciliation through the same module.
 
@@ -345,7 +415,7 @@ export const files = schema.pgTable(
 
 Indexes, uniqueness rules, and `CHECK`s that Drizzle's table API cannot express — the partial unique `(caller_id, idempotency_key)` on `files`, the live-credential lookup (`WHERE revoked_at IS NULL AND expires_at > now()`), the single-`is_default` backend rule, retention/purge sweeper partial indexes, and multi-column `CHECK`s — go in handwritten SQL migrations alongside the generated one, schema-qualified to `fms`. Every index is chosen from a real query pattern (auth lookup, list-by-caller, sweeper scans, claim query); no table ships without at least the indexes its read paths need.
 
-Specify the required uniqueness and transition constraints for the remaining tables (`upload_sessions`, `upload_parts`, `scan_jobs`, `scan_results`, `caller_usage`, `audit_events`), with their indexes, before implementing the lifecycle module.
+Specify the required uniqueness and transition constraints for the remaining tables (`upload_sessions`, `upload_parts`, `scan_jobs`, `scan_results`, `caller_usage`, `audit_events`), with their indexes, before implementing the lifecycle module. **Done in schema and migrations:** those tables ship with the indexes and `CHECK`s described in the handwritten migration; see §18.2 for the invariants they encode.
 
 ## 13. API surface (H3 route files)
 
@@ -423,11 +493,90 @@ Nitro's built-in scheduled tasks (`nitro.config.ts` → `scheduledTasks`) cover 
 
 ## 18. Compliance, backups, starting defaults, testing, build order, invariants
 
-Audit events are append-only. Run backup and restore drills for PostgreSQL and storage together. Starting defaults are 1 GiB maximum file size, 16 MiB parts, 15-minute upload passes, 24-hour `incoming/` lifecycle, and 180-day API key expiry. Load and failure tests must include interrupted uploads, worker restarts, storage copy failure, database commit failure, duplicate requests, and backend compatibility.
+Audit events are append-only. Run backup and restore drills for PostgreSQL and storage together. Load and failure tests must include interrupted uploads, worker restarts, storage copy failure, database commit failure, duplicate requests, and backend compatibility.
 
-This TypeScript plan still lacks the full registration rules, the remaining table definitions and constraints, the build order, and the complete invariant list from the earlier Rust plan. Bring those decisions into this document before implementing the affected features. The safety invariants already stated here are binding: only PostgreSQL `clean` files may be downloaded; scan workers only read sealed objects; promotion verifies the sealed object and clean copy before `clean`; and lifecycle transitions are guarded and safe to retry.
+### 18.1 Starting defaults
 
-Direct downloads remain disabled until their revocation rule is chosen. Decide whether a link may remain valid for its 1-5 minute lifetime after a file loses `clean` status. If immediate revocation is required, serve downloads through the API instead of issuing presigned GETs. Document the chosen rule alongside the authorization policy before enabling direct downloads.
+| Setting                      | Default                          |
+| ---------------------------- | -------------------------------- |
+| Maximum file size            | 1 GiB                            |
+| Part size                    | 16 MiB                           |
+| Upload pass TTL              | 15 minutes                       |
+| `incoming/` object lifecycle | 24 hours                         |
+| API key expiry               | 180 days                         |
+| Setup code TTL               | 24 hours                         |
+| Pending self-signup purge    | 14 days                          |
+| Key rotation overlap         | 24 hours                         |
+| LRU credential cache TTL     | 30 seconds                       |
+| Presigned GET TTL            | Not applicable in v1 (see §18.4) |
+
+### 18.2 Complete invariant list
+
+These invariants are binding for every implementation path (API, workers, sweepers, migrations).
+
+**Security**
+
+1. Only rows whose authoritative PostgreSQL `files.status = 'clean'` may be served to a caller. Storage presence alone never authorizes a download.
+2. Scan workers read only `sealed/` objects. They never read `incoming/` and never write to the clean bucket.
+3. API keys and setup codes are stored only as HMAC-SHA256 digests under a versioned pepper. Plaintext secrets exist only in the issue response and in client memory.
+4. Authentication comparisons use `timingSafeEqual`. Key lookup is by `key_id`, never by secret.
+5. A request is authorized for exactly one `caller_id`. Cross-tenant access is denied unless the caller is `admin` and the route is an admin route.
+6. Direct uploads require `allowDirectUpload`. Direct downloads require `allowDirectDownload`. Neither is implied by file size.
+7. Filenames are display metadata. Object keys are generated server-side as `{callerId}/{prefix}/{fileId}` and never include caller-supplied path segments.
+8. Setup codes and upload passes are single-use (setup codes) or single-file (upload passes) and expire on a clock.
+
+**Lifecycle and integrity**
+
+9. File status transitions follow `initiated → uploading → uploaded → quarantined → scanning → clean|infected|rejected|failed → deleted`. Illegal transitions are rejected.
+10. Every guarded transition updates exactly one row, matching expected `status` and `row_version`. A zero-row update is a conflict, not success.
+11. A scan verdict never makes an object downloadable. Only a verified clean copy plus a committed transition to `clean` does.
+12. Promotion copies the sealed object to clean storage, verifies the clean object (ETag/size/checksum policy per backend tests), then commits `clean`. If verification fails, the file does not become `clean`.
+13. The scanner binds its work to `sealed_etag`. A changed object invalidates the scan; it does not produce a `clean` verdict for the new bytes.
+14. SHA-256 is computed on the bytes that are stored (in-stream for proxy single; by the scanner for parts/direct). A mismatch rejects or fails the file; it never becomes `clean`.
+15. Quarantine state and scan enqueue commit in one transaction. Storage operations outside that transaction are idempotent and reconcilable.
+16. Quota: `bytes_reserved` covers in-flight uploads, `bytes_used` covers completed files, `file_count` counts live files. Abort/expiry releases reservation. Counters never go negative (DB `CHECK`).
+17. Presigned PUT size is not trusted. Actual size is verified at `complete` against caller limits and reservation.
+
+**Operations**
+
+18. Migrations run only as an explicit CI/CD or operator step. The Nitro process never migrates on boot.
+19. `/healthz` is liveness only. `/readyz` reports Postgres (and optional storage) separately; a failed dependency does not crash the process.
+20. Sweepers never invent status. They call the lifecycle module for expiry, purge, and reconcile.
+21. Audit events are append-only. No API updates or soft-deletes `audit_events` rows.
+22. Errors returned to callers do not include stack traces, SQL, internal object keys beyond the file id, or secret material.
+
+### 18.3 Build order
+
+Implement in dependency order. Each step lands green (`vp run check` → `typecheck` → `test` → `build`) before the next starts.
+
+1. **Database core and schema** (done): helpers, `fms` schema, tables, migrations.
+2. **Auth middleware (T6):** pepper loading, key hash verify, LRU cache, rate limit seam, `event.context.caller`. Depends on `caller_credentials`.
+3. **Registration (T7):** setup codes, admin approval, self-signup allowlist, key rotate/revoke, upload passes. Depends on auth + `service_settings`.
+4. **Storage adapter (T8):** one AWS SDK v3 adapter, backend selection from `storage_backends`, presigner, path-style. No call sites outside the lifecycle implementation.
+5. **File lifecycle (T9):** guarded state machine, sealing, atomic enqueue, promotion, abort/expiry, quota reserve/release. Depends on database + storage adapter. This is the primary test surface.
+6. **Upload routes (T10):** proxy single, parts, direct presigned PUT, complete/abort with idempotency. Depends on lifecycle + auth.
+7. **Scan worker (T11):** claim with `FOR UPDATE SKIP LOCKED`, integrity checks, ClamAV, verdict to lifecycle. Depends on lifecycle.
+8. **Downloads (T12):** `clean` gate, proxy stream, range headers. Depends on lifecycle (and §18.4 policy).
+9. **Sweepers (T13):** stale files, expired sessions/codes, retention, purge, reconcile through lifecycle.
+10. **Health and observability (T14):** `/healthz`, `/readyz`, OTel bootstrap before listen, metrics, canary.
+11. **Lifecycle tests (T15):** real test DB, controllable storage, crash/retry, duplicate completion, stale ETags, quota release, download denial before `clean`.
+12. **Verification and backend compatibility (T16):** full command gate; §19 tests before any S3 deployment is enabled.
+
+Work that only needs schema or rules may proceed in parallel once step 1 is merged. Anything that touches status transitions waits for step 5.
+
+### 18.4 Presigned-GET revocation decision
+
+**Decision: immediate revocation is required. Presigned GET downloads are not enabled in v1.**
+
+Rationale: this service quarantines and scans objects for malware and must honor legal hold and delete decisions immediately. A presigned GET that remains valid after a file leaves `clean` would keep serving bytes the database already considers unsafe. That is incompatible with invariant 1.
+
+Consequences:
+
+- `GET /v1/files/{id}/content` always proxies through the API. Every request re-checks PostgreSQL status, legal hold, and caller capability. A revoked, deleted, legal-held, or non-`clean` file is `403`/`404` on the next request.
+- `allowDirectDownload` gates whether a caller may use that content endpoint at all. It does not mean "issue an S3 URL".
+- Range requests are served by the API proxy (`Range` forwarded or re-served from the stream). No client receives a bucket URL.
+- The storage presigner remains available for **upload** (direct PUT) only. T8 implements PUT presign; GET presign stays out of the adapter API until this policy is reopened.
+- If proxy download throughput later becomes a measured problem, reopen this decision explicitly. Any future presigned GET must be ≤5 minutes, `allowDirectDownload` only, and documented as **not revocable** until expiry. That tradeoff is not accepted by default.
 
 ## 19. What changes if you swap RustFS for MinIO or AWS S3 later
 

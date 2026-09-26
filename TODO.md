@@ -4,7 +4,7 @@
 - [x] **T2** Database core: postgres.js client, `pgSchema('fms')`, buildr-style helpers (`generateUuid`, `generateTimestamps`, `generateTimestampsWithAudit`) with JSDoc on exports
 - [x] **T3** Define all tables with indexes: registration/credentials/files plus `upload_sessions`, `upload_parts`, `scan_jobs`, `scan_results`, `caller_usage`, `audit_events`
 - [x] **T4** Migration pipeline: `drizzle-kit generate` against the `fms` schema + handwritten SQL for partial indexes/check constraints, wired as a CI-only step (never on boot)
-- [ ] **T5** Complete PLAN.md gaps: full registration rules, build order, complete invariant list, presigned-GET revocation decision
+- [x] **T5** Complete PLAN.md gaps: full registration rules, build order, complete invariant list, presigned-GET revocation decision
 - [ ] **T6** Auth: H3 middleware, HMAC-SHA256 key hashing with versioned pepper, `timingSafeEqual`, LRU key cache, cross-instance rate limiting
 - [ ] **T7** Registration flows: setup codes, admin approval, allowlisted `self_signup`, API key rotation/revocation, upload passes
 - [ ] **T8** Storage adapter: one AWS SDK v3 S3 adapter, backend selection by `storage_backends` row, presigner, path-style config, no SDK imports outside the adapter
