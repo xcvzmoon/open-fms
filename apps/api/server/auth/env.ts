@@ -5,6 +5,8 @@ export type AuthEnv = {
   baseURL: string;
   isProduction: boolean;
   trustedOrigins: string[];
+  pepperSecret: string;
+  pepperVersion: number;
 };
 
 const secretSchema = v.pipe(
@@ -49,6 +51,16 @@ export function resolveAuthEnv(source: Record<string, string | undefined> = proc
   const secret = parseRequired(secretSchema, source.BETTER_AUTH_SECRET);
   const baseURL = parseRequired(baseUrlSchema, source.BETTER_AUTH_URL);
   const publicAppUrl = parseOptionalUrl(source.PUBLIC_APP_URL);
+  const pepperSecret = parseRequired(
+    secretSchema,
+    source.AUTH_TOKEN_PEPPER ?? source.BETTER_AUTH_SECRET,
+  );
+  const pepperVersion = source.AUTH_TOKEN_PEPPER_VERSION
+    ? Number.parseInt(source.AUTH_TOKEN_PEPPER_VERSION, 10)
+    : 1;
+  if (!Number.isInteger(pepperVersion) || pepperVersion < 1) {
+    throw new Error('AUTH_ENV_INVALID: AUTH_TOKEN_PEPPER_VERSION_INVALID');
+  }
   const isProduction = source.NODE_ENV === 'production';
 
   const trustedOrigins = [baseURL];
@@ -61,5 +73,7 @@ export function resolveAuthEnv(source: Record<string, string | undefined> = proc
     baseURL,
     isProduction,
     trustedOrigins,
+    pepperSecret,
+    pepperVersion,
   };
 }
