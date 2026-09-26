@@ -113,10 +113,10 @@ Caller kinds: `app` (ordinary service or product integration) and `admin` (opera
 
 Signup sources:
 
-| Source | Who | Result |
-| ------ | --- | ------ |
-| `admin_approval` (default) | Admin invites or an operator seeds the caller | Caller starts `active` after the setup code is redeemed; no public email loop |
-| `self_signup` | A person or service with an email in an allowlisted domain | Caller starts `pending_verification` until the email is verified and an admin approves |
+| Source                     | Who                                                        | Result                                                                                 |
+| -------------------------- | ---------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `admin_approval` (default) | Admin invites or an operator seeds the caller              | Caller starts `active` after the setup code is redeemed; no public email loop          |
+| `self_signup`              | A person or service with an email in an allowlisted domain | Caller starts `pending_verification` until the email is verified and an admin approves |
 
 `self_signup` is gated by `service_settings.signup`:
 
@@ -166,14 +166,14 @@ Upload passes are short-lived tokens for browsers and mobile clients that must u
 
 ### 7.5 Authorization summary
 
-| Capability | Enforced by |
-| ---------- | ----------- |
-| File list/get/delete | Active caller + owning `caller_id` |
-| Upload (proxy) | Active caller + scopes + size/type limits |
-| Upload (direct) | `allowDirectUpload` on the caller |
-| Download content | Active caller with `allowDirectDownload`; always proxied (§18.4) |
-| Rescan, settings | `admin` caller only |
-| Cross-tenant read | Denied except explicit admin routes |
+| Capability           | Enforced by                                                      |
+| -------------------- | ---------------------------------------------------------------- |
+| File list/get/delete | Active caller + owning `caller_id`                               |
+| Upload (proxy)       | Active caller + scopes + size/type limits                        |
+| Upload (direct)      | `allowDirectUpload` on the caller                                |
+| Download content     | Active caller with `allowDirectDownload`; always proxied (§18.4) |
+| Rescan, settings     | `admin` caller only                                              |
+| Cross-tenant read    | Denied except explicit admin routes                              |
 
 Nitro-specific notes:
 
@@ -497,18 +497,18 @@ Audit events are append-only. Run backup and restore drills for PostgreSQL and s
 
 ### 18.1 Starting defaults
 
-| Setting | Default |
-| ------- | ------- |
-| Maximum file size | 1 GiB |
-| Part size | 16 MiB |
-| Upload pass TTL | 15 minutes |
-| `incoming/` object lifecycle | 24 hours |
-| API key expiry | 180 days |
-| Setup code TTL | 24 hours |
-| Pending self-signup purge | 14 days |
-| Key rotation overlap | 24 hours |
-| LRU credential cache TTL | 30 seconds |
-| Presigned GET TTL | Not applicable in v1 (see §18.4) |
+| Setting                      | Default                          |
+| ---------------------------- | -------------------------------- |
+| Maximum file size            | 1 GiB                            |
+| Part size                    | 16 MiB                           |
+| Upload pass TTL              | 15 minutes                       |
+| `incoming/` object lifecycle | 24 hours                         |
+| API key expiry               | 180 days                         |
+| Setup code TTL               | 24 hours                         |
+| Pending self-signup purge    | 14 days                          |
+| Key rotation overlap         | 24 hours                         |
+| LRU credential cache TTL     | 30 seconds                       |
+| Presigned GET TTL            | Not applicable in v1 (see §18.4) |
 
 ### 18.2 Complete invariant list
 
