@@ -21,7 +21,7 @@ export {
   type CallerCredentialPolicy,
   type CallerRecord,
 } from './queries/callers.ts';
-export { loadFileForCaller, type FileRecord } from './queries/files.ts';
+export { loadFileById, loadFileForCaller, type FileRecord } from './queries/files.ts';
 export {
   approveCaller,
   consumeUploadPass,
@@ -45,6 +45,14 @@ export {
   loadStorageBackend,
   type StorageBackendRecord,
 } from './queries/storage-backends.ts';
+export {
+  claimNextScanJob,
+  completeScanJob,
+  failScanJob,
+  markScanJobRunning,
+  reclaimExpiredScanLeases,
+  type ClaimedScanJob,
+} from './queries/scan-jobs.ts';
 export { fmsSchema } from './schema.ts';
 export {
   generateHashedToken,
