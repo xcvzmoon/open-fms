@@ -1,5 +1,43 @@
 # Changelog
 
+## v0.0.3
+
+[compare changes](https://github.com/xcvzmoon/open-fms/compare/v0.0.2...v0.0.3)
+
+### 🚀 Enhancements
+
+- **database:** Add better auth schema and migration ([cbb9be0](https://github.com/xcvzmoon/open-fms/commit/cbb9be0))
+- **mailer:** Add typed auth mail dispatch with mock and smtp ([88bf99e](https://github.com/xcvzmoon/open-fms/commit/88bf99e))
+- **api:** Wire better auth middleware and auth email hooks ([d4d8b88](https://github.com/xcvzmoon/open-fms/commit/d4d8b88))
+- **api:** Validate auth env and attach caller policy ([f302bf7](https://github.com/xcvzmoon/open-fms/commit/f302bf7))
+- **database:** Add caller policy query for auth context ([aee5feb](https://github.com/xcvzmoon/open-fms/commit/aee5feb))
+
+### 🩹 Fixes
+
+- **plan:** Format file ([747d587](https://github.com/xcvzmoon/open-fms/commit/747d587))
+- **api:** Validate auth context user with valibot ([abd8a20](https://github.com/xcvzmoon/open-fms/commit/abd8a20))
+- **api:** Type h3 event context with direct h3 dependency ([035a8e6](https://github.com/xcvzmoon/open-fms/commit/035a8e6))
+- **ci:** Build open-fms packages and export source entries ([14bc386](https://github.com/xcvzmoon/open-fms/commit/14bc386))
+- **mailer:** Reuse transport and remove unused queue types ([0dce4df](https://github.com/xcvzmoon/open-fms/commit/0dce4df))
+- **packages:** Export source entrypoints for workspace packages ([7610966](https://github.com/xcvzmoon/open-fms/commit/7610966))
+
+### 📖 Documentation
+
+- **plan:** Add registration rules build order invariants and get policy ([1310b4a](https://github.com/xcvzmoon/open-fms/commit/1310b4a))
+- Record better auth mail env and plan notes ([cb5026c](https://github.com/xcvzmoon/open-fms/commit/cb5026c))
+
+### 🏡 Chore
+
+- **todo:** Mark t5 as completed ([c60d0ec](https://github.com/xcvzmoon/open-fms/commit/c60d0ec))
+
+### ✅ Tests
+
+- **api:** Cover auth env and public paths ([b3c39bb](https://github.com/xcvzmoon/open-fms/commit/b3c39bb))
+
+### ❤️ Contributors
+
+- Mon Albert Gamil ([@xcvzmoon](https://github.com/xcvzmoon))
+
 ## v0.0.2
 
 [compare changes](https://github.com/xcvzmoon/open-fms/compare/v0.0.1...v0.0.2)
