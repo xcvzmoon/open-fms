@@ -27,7 +27,7 @@ jobs:
         uses: ./.github/actions/setup-project
 
       - name: Build workspace packages
-        run: vp run --filter "@open-fms/database" --filter "@open-fms/mailer" --filter "@open-fms/storage" --filter "@open-fms/lifecycle" build
+        run: vp run --filter "@open-fms/database" --filter "@open-fms/mailer" --filter "@open-fms/storage" --filter "@open-fms/lifecycle" --filter "@open-fms/scan-worker" build
 
       - name: Run format, lint, and type checks
         run: vp run check
@@ -66,7 +66,7 @@ jobs:
         uses: ./.github/actions/setup-project
 
       - name: Build workspace packages
-        run: vp run --filter "@open-fms/database" --filter "@open-fms/mailer" --filter "@open-fms/storage" --filter "@open-fms/lifecycle" build
+        run: vp run --filter "@open-fms/database" --filter "@open-fms/mailer" --filter "@open-fms/storage" --filter "@open-fms/lifecycle" --filter "@open-fms/scan-worker" build
 
       - name: Run database migrations
         run: vp run --filter "@open-fms/database" migrate
