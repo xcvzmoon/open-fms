@@ -1,7 +1,7 @@
 import { defineHandler } from 'nitro';
 import { HTTPError, readBody } from 'nitro/h3';
 import * as v from 'valibot';
-import { handleSaveSignupSettings } from '../../../../../../registration/service.ts';
+import { handleSaveSignupSettings } from '~/server/registration/service.ts';
 
 const schema = v.object({
   mode: v.picklist(['disabled', 'admin_approval', 'self_signup']),

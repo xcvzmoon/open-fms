@@ -1,7 +1,7 @@
 import { defineHandler } from 'nitro';
 import { HTTPError, readBody } from 'nitro/h3';
 import * as v from 'valibot';
-import { handleSelfSignup, toRegistrationFailure } from '../../../../registration/service.ts';
+import { handleSelfSignup, toRegistrationFailure } from '~/server/registration/service.ts';
 
 const schema = v.object({
   name: v.pipe(v.string(), v.minLength(2), v.maxLength(64)),
