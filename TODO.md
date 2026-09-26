@@ -2,7 +2,7 @@
 
 - [x] **T1** Scaffold `apps/api` (Nitro standalone) and `packages/database`; pin `drizzle-orm`/`drizzle-kit` `1.0.0-rc.5-5935859` + `postgres` (postgres.js) in the workspace catalog
 - [x] **T2** Database core: postgres.js client, `pgSchema('fms')`, buildr-style helpers (`generateUuid`, `generateTimestamps`, `generateTimestampsWithAudit`) with JSDoc on exports
-- [ ] **T3** Define all tables with indexes: registration/credentials/files plus `upload_sessions`, `upload_parts`, `scan_jobs`, `scan_results`, `caller_usage`, `audit_events`
+- [x] **T3** Define all tables with indexes: registration/credentials/files plus `upload_sessions`, `upload_parts`, `scan_jobs`, `scan_results`, `caller_usage`, `audit_events`
 - [ ] **T4** Migration pipeline: `drizzle-kit generate` against the `fms` schema + handwritten SQL for partial indexes/check constraints, wired as a CI-only step (never on boot)
 - [ ] **T5** Complete PLAN.md gaps: full registration rules, build order, complete invariant list, presigned-GET revocation decision
 - [ ] **T6** Auth: H3 middleware, HMAC-SHA256 key hashing with versioned pepper, `timingSafeEqual`, LRU key cache, cross-instance rate limiting
