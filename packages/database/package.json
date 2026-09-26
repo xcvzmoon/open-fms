@@ -24,6 +24,7 @@
     "@xcvzlabs/env": "catalog:",
     "drizzle-orm": "catalog:database",
     "postgres": "catalog:database",
+    "uuid": "catalog:",
     "valibot": "catalog:"
   },
   "devDependencies": {

@@ -193,6 +193,9 @@ catalogs:
     typescript:
       specifier: ^6.0.3
       version: 6.0.3
+    uuid:
+      specifier: ^14.0.2
+      version: 14.0.2
     valibot:
       specifier: ^1.5.0
       version: 1.5.0
@@ -249,6 +252,9 @@ importers:
       postgres:
         specifier: catalog:database
         version: 3.4.9
+      uuid:
+        specifier: 'catalog:'
+        version: 14.0.2
       valibot:
         specifier: 'catalog:'
         version: 1.5.0(typescript@6.0.3)
@@ -2068,6 +2074,10 @@ packages:
   unstorage@2.0.0-alpha.10:
     resolution: {integrity: sha512-6h1veZp8gnp4dGllf0tDijoXxDYymJu251IpKKkrSVH+QHL6tXFbwG85KM+CBHSgpkkgtPuIiZ9oLCLP5+1Evw==}
 
+  uuid@14.0.2:
+    resolution: {integrity: sha512-xZe/16rV4aa+HGSOCiY2YeLT1OybRLrrkL/Rqaq7p7GMVXjFh+6wN4oMYgjFmnSnhY8t6Xpdl2l9qmnHYuMHwQ==}
+    hasBin: true
+
   valibot@1.5.0:
     resolution: {integrity: sha512-nil6AkP2TChWL43Z5uJ6GTxX01CUA+g8LWUM+N/rB9NBbkUMaUsi9PUNzlUPgoKASgmx9f7eGOYpJ04/fSa6FQ==}
     peerDependencies:
@@ -3372,6 +3382,8 @@ snapshots:
       pathe: 2.0.3
 
   unstorage@2.0.0-alpha.10: {}
+
+  uuid@14.0.2: {}
 
   valibot@1.5.0(typescript@6.0.3):
     optionalDependencies:
