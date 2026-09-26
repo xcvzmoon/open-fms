@@ -1,6 +1,6 @@
 import { defineHandler } from 'nitro';
 import { HTTPError } from 'nitro/h3';
-import { handleMintUploadPass } from '~/server/registration/service.ts';
+import { loadOwnedFile } from '~/server/uploads/service.ts';
 
 export default defineHandler(async (event) => {
   const caller = event.context.caller;
@@ -11,8 +11,12 @@ export default defineHandler(async (event) => {
   if (!fileId) {
     throw new HTTPError('ROUTE_PARAM_MISSING', { status: 400 });
   }
-  return await handleMintUploadPass({
-    fileId,
-    callerId: caller.caller.id,
-  });
+  const file = await loadOwnedFile(fileId, caller.caller.id);
+  return {
+    fileId: file.id,
+    status: file.status,
+    rowVersion: file.rowVersion,
+    sizeBytes: file.sizeBytes,
+    objectKey: file.objectKey,
+  };
 });

@@ -11,7 +11,9 @@
   "dependencies": {
     "@better-auth/api-key": "catalog:",
     "@open-fms/database": "workspace:*",
+    "@open-fms/lifecycle": "workspace:*",
     "@open-fms/mailer": "workspace:*",
+    "@open-fms/storage": "workspace:*",
     "better-auth": "catalog:",
     "h3": "catalog:",
     "lru-cache": "catalog:",
