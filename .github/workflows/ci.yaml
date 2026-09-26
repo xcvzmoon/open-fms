@@ -32,6 +32,12 @@ jobs:
       - name: Run format, lint, and type checks
         run: vp run check
 
+      - name: Validate database migrations
+        run: |
+          vp run --filter "@open-fms/database" check
+          vp run --filter "@open-fms/database" generate
+          git diff --exit-code packages/database/migrations
+
   test:
     name: Test
     runs-on: ubuntu-latest
