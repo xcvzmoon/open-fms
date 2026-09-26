@@ -1,5 +1,39 @@
 # Changelog
 
+## v0.0.4
+
+[compare changes](https://github.com/xcvzmoon/open-fms/compare/v0.0.3...v0.0.4)
+
+### 🚀 Enhancements
+
+- **database:** Add registration tokens setup codes and upload passes ([0487fb4](https://github.com/xcvzmoon/open-fms/commit/0487fb4))
+- **api:** Add registration flows for signup keys and passes ([0bce4bc](https://github.com/xcvzmoon/open-fms/commit/0bce4bc))
+- **storage:** Add single s3 adapter with put presigning ([3922921](https://github.com/xcvzmoon/open-fms/commit/3922921))
+- **database:** Load storage backend rows for adapter config ([249e086](https://github.com/xcvzmoon/open-fms/commit/249e086))
+- **lifecycle:** Add guarded file state machine and quota ops ([4234c1d](https://github.com/xcvzmoon/open-fms/commit/4234c1d))
+- **api:** Add upload routes with streaming hash and complete ([8ceee1e](https://github.com/xcvzmoon/open-fms/commit/8ceee1e))
+- **database:** Load file records for upload ownership checks ([8b4cb8c](https://github.com/xcvzmoon/open-fms/commit/8b4cb8c))
+
+### 🩹 Fixes
+
+- **api:** Resolve tilde alias in nitro config ([91e1b46](https://github.com/xcvzmoon/open-fms/commit/91e1b46))
+- **ci:** Build all open-fms packages and export source types ([d653278](https://github.com/xcvzmoon/open-fms/commit/d653278))
+
+### 🏡 Chore
+
+- **todo:** Mark t7 as completed ([af2f64b](https://github.com/xcvzmoon/open-fms/commit/af2f64b))
+- **todo:** Mark t8 as completed ([f68fc9f](https://github.com/xcvzmoon/open-fms/commit/f68fc9f))
+- **todo:** Mark t9 as completed ([33ed666](https://github.com/xcvzmoon/open-fms/commit/33ed666))
+- **todo:** Mark t10 as completed ([1143a0f](https://github.com/xcvzmoon/open-fms/commit/1143a0f))
+
+### ✅ Tests
+
+- Cover token security signup domain and env ([8135ed2](https://github.com/xcvzmoon/open-fms/commit/8135ed2))
+
+### ❤️ Contributors
+
+- Mon Albert Gamil ([@xcvzmoon](https://github.com/xcvzmoon))
+
 ## v0.0.3
 
 [compare changes](https://github.com/xcvzmoon/open-fms/compare/v0.0.2...v0.0.3)
