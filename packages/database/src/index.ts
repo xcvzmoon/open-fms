@@ -53,6 +53,7 @@ export {
   reclaimExpiredScanLeases,
   type ClaimedScanJob,
 } from './queries/scan-jobs.ts';
+export { pingDatabase } from './queries/health.ts';
 export {
   expireSetupCodes,
   expireUploadPasses,
