@@ -53,6 +53,16 @@ export {
   reclaimExpiredScanLeases,
   type ClaimedScanJob,
 } from './queries/scan-jobs.ts';
+export {
+  expireSetupCodes,
+  expireUploadPasses,
+  expireUploadSessions,
+  listPurgeableFiles,
+  listStaleUploadFiles,
+  reclaimScanLeases,
+  type PurgeableFile,
+  type StaleUploadFile,
+} from './queries/sweeps.ts';
 export { fmsSchema } from './schema.ts';
 export {
   generateHashedToken,
