@@ -109,7 +109,16 @@ OpenAPI docs: `/_openapi.json` and Scalar UI `/_scalar` in development.
 DB_URL=postgres://user:pass@localhost:5432/open-fms vp run test
 ```
 
-Integration tests cover the lifecycle state machine with a controllable storage double. Without `DB_URL` they are skipped.
+Lifecycle integration tests cover the state machine with a controllable storage double. Without `DB_URL` they are skipped.
+
+Storage integration tests talk to a real S3-compatible backend (MinIO locally). They cover the adapter and the resumable multipart path (`proxy_parts`). Start one, then set `STORAGE_TEST_ENDPOINT`:
+
+```bash
+docker compose -f compose.storage.yml up -d --wait
+STORAGE_TEST_ENDPOINT=http://127.0.0.1:9000 vp run test
+```
+
+Without `STORAGE_TEST_ENDPOINT` the storage suite is skipped. The same variables work against RustFS, MinIO, or AWS S3 once the quarantine/clean/forensic buckets exist. Resumable parts use S3 multipart under the hood: non-final parts must be at least 5 MiB (session default part size is 16 MiB).
 
 ## License
 

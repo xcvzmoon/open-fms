@@ -1,0 +1,49 @@
+# Local S3-compatible backend for @open-fms/storage integration tests.
+#
+#   docker compose -f compose.storage.yml up -d --wait
+#   STORAGE_TEST_ENDPOINT=http://127.0.0.1:9000 vp run test
+#   docker compose -f compose.storage.yml down -v
+#
+# Credentials and bucket names match the defaults in
+# packages/storage/tests/adapter.integration.test.ts.
+
+services:
+  minio:
+    image: minio/minio:RELEASE.2025-10-15T17-29-55Z
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - '9000:9000'
+      - '9001:9001'
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:9000/minio/health/live']
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  create-buckets:
+    image: minio/mc:RELEASE.2025-08-13T08-35-41Z
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        i=0
+        until mc alias set local http://minio:9000 minioadmin minioadmin; do
+          i=$$((i+1))
+          if [ $$i -ge 30 ]; then
+            echo "minio is not ready" >&2
+            exit 1
+          fi
+          sleep 1
+        done
+        mc mb --ignore-existing local/fms-quarantine local/fms-clean local/fms-forensic
+
+volumes:
+  minio-data:
