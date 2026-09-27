@@ -3,7 +3,7 @@ name: Open FMS
 shortDescription: ships clean files over HTTP after malware scanning
 description: A production file management API for S3-compatible object storage. Uploads are quarantined, scanned, and only clean objects become downloadable.
 github: xcvzmoon/open-fms
-url: https://open-fms.pages.dev
+url: https://xcvzmoon.github.io/open-fms
 themeColor: "teal"
 lang: "en"
 redirects:
@@ -11,7 +11,7 @@ redirects:
   "/guide/quick-start": "/docs/quick-start"
   "/guide/install": "/docs/quick-start"
 llms:
-  domain: "https://open-fms.pages.dev"
+  domain: "https://xcvzmoon.github.io/open-fms"
   title: "Open FMS"
   description: "File management API for S3-compatible object storage."
   full:
