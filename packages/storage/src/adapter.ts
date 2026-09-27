@@ -96,14 +96,17 @@ export class S3StorageAdapter {
     return { etag: etag.replaceAll('"', '') };
   }
 
-  async getObject(location: {
-    bucket: string;
-    key: string;
-  }): Promise<{ body: ReadableStream; etag: string; contentLength: number | undefined }> {
+  async getObject(location: { bucket: string; key: string; range?: string | undefined }): Promise<{
+    body: ReadableStream;
+    etag: string;
+    contentLength: number | undefined;
+    contentRange: string | undefined;
+  }> {
     const result = await this.#client.send(
       new GetObjectCommand({
         Bucket: location.bucket,
         Key: location.key,
+        Range: location.range,
       }),
     );
     const body = result.Body;
@@ -115,6 +118,7 @@ export class S3StorageAdapter {
       body: body.transformToWebStream(),
       etag: etag ? etag.replaceAll('"', '') : '',
       contentLength: result.ContentLength,
+      contentRange: result.ContentRange,
     };
   }
 
