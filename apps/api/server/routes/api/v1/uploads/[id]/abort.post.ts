@@ -1,7 +1,14 @@
 import { defineHandler } from 'nitro';
 import { HTTPError, readBody } from 'nitro/h3';
 import * as v from 'valibot';
-import { abortFile, loadOwnedFile } from '~/server/uploads/service.ts';
+import { resolveUploadCredentials } from '~/server/uploads/credentials.ts';
+import {
+  abortFile,
+  abortResumableUpload,
+  loadOwnedFile,
+  loadOwnedUploadSession,
+  resolveStorageAdapter,
+} from '~/server/uploads/service.ts';
 
 const schema = v.object({
   reason: v.optional(v.pipe(v.string(), v.maxLength(256)), 'client_abort'),
@@ -20,11 +27,28 @@ export default defineHandler(async (event) => {
   const parsed = v.safeParse(schema, await readBody(event));
   const reason = parsed.success ? parsed.output.reason : 'client_abort';
   const file = await loadOwnedFile(fileId, caller.caller.id);
+  const session = await loadOwnedUploadSession(fileId);
   if (file.status !== 'initiated' && file.status !== 'uploading') {
     throw new HTTPError('FILE_TRANSITION_INVALID', { status: 409 });
   }
 
   try {
+    if (session.multipartUploadId) {
+      const storage = await resolveStorageAdapter(
+        file.storageBackendId,
+        resolveUploadCredentials(),
+      );
+      try {
+        await abortResumableUpload({
+          session,
+          storage,
+          objectKey: file.objectKey,
+          reason: reason ?? 'client_abort',
+        });
+      } finally {
+        storage.destroy();
+      }
+    }
     await abortFile({
       fileId: file.id,
       expectedStatus: file.status,
