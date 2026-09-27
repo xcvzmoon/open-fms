@@ -1,7 +1,19 @@
-import { defineHandler } from 'nitro';
+import { defineHandler, defineRouteMeta } from 'nitro';
 import { HTTPError, readBody } from 'nitro/h3';
 import * as v from 'valibot';
 import { handleRedeemSetupCode, toRegistrationFailure } from '~/server/registration/service.ts';
+
+defineRouteMeta({
+  openAPI: {
+    tags: ['signup'],
+    summary: 'Redeem setup code',
+    description: 'Consumes a one-time setup code and returns the caller id.',
+    responses: {
+      200: { description: 'Code redeemed' },
+      400: { description: 'Invalid or expired code' },
+    },
+  },
+});
 
 const schema = v.object({
   code: v.pipe(v.string(), v.minLength(32)),

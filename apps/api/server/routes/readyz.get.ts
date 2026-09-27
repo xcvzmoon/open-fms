@@ -1,11 +1,52 @@
 import { pingDatabase } from '@open-fms/database';
-import { defineHandler } from 'nitro';
+import { defineHandler, defineRouteMeta } from 'nitro';
 import { HTTPError } from 'nitro/h3';
 
 type HealthCheck = {
   status: 'ok' | 'error';
   detail?: string;
 };
+
+defineRouteMeta({
+  openAPI: {
+    tags: ['health'],
+    summary: 'Readiness probe',
+    description:
+      'Returns 200 only when PostgreSQL is reachable. Each dependency is reported separately.',
+    responses: {
+      200: {
+        description: 'Ready to serve traffic',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              properties: {
+                status: { type: 'string', enum: ['ready'] },
+                checks: { type: 'object', additionalProperties: true },
+              },
+              required: ['status', 'checks'],
+            },
+          },
+        },
+      },
+      503: {
+        description: 'One or more dependencies are unavailable',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              properties: {
+                statusCode: { type: 'number' },
+                statusMessage: { type: 'string' },
+                data: { type: 'object', additionalProperties: true },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+});
 
 export default defineHandler(async () => {
   const processCheck: HealthCheck = { status: 'ok' };
