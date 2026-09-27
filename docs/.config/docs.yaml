@@ -4,28 +4,28 @@ shortDescription: ships clean files over HTTP after malware scanning
 description: A production file management API for S3-compatible object storage. Uploads are quarantined, scanned, and only clean objects become downloadable.
 github: xcvzmoon/open-fms
 url: https://xcvzmoon.github.io/open-fms
-themeColor: "teal"
-lang: "en"
+themeColor: 'teal'
+lang: 'en'
 redirects:
-  "/guide": "/docs"
-  "/guide/quick-start": "/docs/quick-start"
-  "/guide/install": "/docs/quick-start"
+  '/guide': '/docs'
+  '/guide/quick-start': '/docs/quick-start'
+  '/guide/install': '/docs/quick-start'
 llms:
-  domain: "https://xcvzmoon.github.io/open-fms"
-  title: "Open FMS"
-  description: "File management API for S3-compatible object storage."
+  domain: 'https://xcvzmoon.github.io/open-fms'
+  title: 'Open FMS'
+  description: 'File management API for S3-compatible object storage.'
   full:
-    title: "Open FMS documentation"
-    description: "Guides, API surface, architecture, and operational rules for Open FMS."
+    title: 'Open FMS documentation'
+    description: 'Guides, API surface, architecture, and operational rules for Open FMS.'
 landing:
-  title: "Open FMS"
-  description: "Ship files over HTTP. Quarantine, scan, then serve only clean objects."
-  heroTitle: "Open FMS"
-  heroSubtitle: "ships clean files over HTTP after malware scanning"
-  heroDescription: "Uploads land in quarantine. Workers verify SHA-256, type, archives, and ClamAV. Downloads re-check PostgreSQL on every request."
+  title: 'Open FMS'
+  description: 'Ship files over HTTP. Quarantine, scan, then serve only clean objects.'
+  heroTitle: 'Open FMS'
+  heroSubtitle: 'ships clean files over HTTP after malware scanning'
+  heroDescription: 'Uploads land in quarantine. Workers verify SHA-256, type, archives, and ClamAV. Downloads re-check PostgreSQL on every request.'
   heroCode:
-    title: "upload-and-download.sh"
-    lang: "bash"
+    title: 'upload-and-download.sh'
+    lang: 'bash'
     content: |
       # Create an upload session
       curl -X POST https://fms.example/api/v1/uploads \
@@ -43,40 +43,40 @@ landing:
         -H "Authorization: Bearer $FMS_API_KEY"
   heroLinks:
     docs:
-      icon: "i-lucide-book-open"
-      to: "/docs"
+      icon: 'i-lucide-book-open'
+      to: '/docs'
     github:
-      icon: "i-simple-icons-github"
-      to: "https://github.com/xcvzmoon/open-fms"
-  featuresTitle: "Included"
+      icon: 'i-simple-icons-github'
+      to: 'https://github.com/xcvzmoon/open-fms'
+  featuresTitle: 'Included'
   features:
-    - title: "Quarantine"
-      icon: "i-lucide-shield-check"
-      description: "Uploads stay non-downloadable until scanning finishes and the database says clean."
-    - title: "Integrity checks"
-      icon: "i-lucide-file-check"
-      description: "SHA-256, magic-byte type sniffing, archive bomb policy, and optional ClamAV."
-    - title: "One S3 adapter"
-      icon: "i-lucide-cloud-cog"
-      description: "RustFS, MinIO, and AWS S3 share one adapter. Routes never import the AWS SDK."
-    - title: "Lifecycle"
-      icon: "i-lucide-git-branch"
-      badge: "Core"
-      description: "Guarded status transitions match `row_version` and update exactly one row."
-    - title: "Caller isolation"
-      icon: "i-lucide-users"
-      description: "API keys, quotas, scopes, CIDR allowlists, and audit events stay per tenant."
-    - title: "Operability"
-      icon: "i-lucide-activity"
-      badge: "New"
-      description: "Health probes, OpenTelemetry, scheduled sweepers, reconcile, and canary tasks."
-    - title: "Uploads"
-      icon: "i-lucide-upload-cloud"
-      description: "Single stream, resumable parts, and direct presigned PUT with in-flight hashing."
-    - title: "Downloads"
-      icon: "i-lucide-download"
-      description: "Proxy streams with Range support and immediate revocation from database state."
-    - title: "OpenAPI"
-      icon: "i-lucide-book-open"
-      badge: "Experimental"
-      description: "Spec generated from handlers and served through Scalar in development."
+    - title: 'Quarantine'
+      icon: 'i-lucide-shield-check'
+      description: 'Uploads stay non-downloadable until scanning finishes and the database says clean.'
+    - title: 'Integrity checks'
+      icon: 'i-lucide-file-check'
+      description: 'SHA-256, magic-byte type sniffing, archive bomb policy, and optional ClamAV.'
+    - title: 'One S3 adapter'
+      icon: 'i-lucide-cloud-cog'
+      description: 'RustFS, MinIO, and AWS S3 share one adapter. Routes never import the AWS SDK.'
+    - title: 'Lifecycle'
+      icon: 'i-lucide-git-branch'
+      badge: 'Core'
+      description: 'Guarded status transitions match `row_version` and update exactly one row.'
+    - title: 'Caller isolation'
+      icon: 'i-lucide-users'
+      description: 'API keys, quotas, scopes, CIDR allowlists, and audit events stay per tenant.'
+    - title: 'Operability'
+      icon: 'i-lucide-activity'
+      badge: 'New'
+      description: 'Health probes, OpenTelemetry, scheduled sweepers, reconcile, and canary tasks.'
+    - title: 'Uploads'
+      icon: 'i-lucide-upload-cloud'
+      description: 'Single stream, resumable parts, and direct presigned PUT with in-flight hashing.'
+    - title: 'Downloads'
+      icon: 'i-lucide-download'
+      description: 'Proxy streams with Range support and immediate revocation from database state.'
+    - title: 'OpenAPI'
+      icon: 'i-lucide-book-open'
+      badge: 'Experimental'
+      description: 'Spec generated from handlers and served through Scalar in development.'
