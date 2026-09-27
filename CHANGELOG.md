@@ -1,5 +1,37 @@
 # Changelog
 
+## v0.0.5
+
+[compare changes](https://github.com/xcvzmoon/open-fms/compare/v0.0.4...v0.0.5)
+
+### 🚀 Enhancements
+
+- **database:** Claim scan jobs and load files for workers ([cc81c5b](https://github.com/xcvzmoon/open-fms/commit/cc81c5b))
+- **scan-worker:** Add claim checks clamav and lifecycle verdicts ([0bebb10](https://github.com/xcvzmoon/open-fms/commit/0bebb10))
+- **storage:** Support range reads on get object ([c20184d](https://github.com/xcvzmoon/open-fms/commit/c20184d))
+- **api:** Proxy clean downloads with range support ([2652761](https://github.com/xcvzmoon/open-fms/commit/2652761))
+- **database:** Add sweep queries and lifecycle expire purge ([94631d7](https://github.com/xcvzmoon/open-fms/commit/94631d7))
+- **api:** Schedule nitro sweep tasks for expiry and purge ([442254c](https://github.com/xcvzmoon/open-fms/commit/442254c))
+
+### 🩹 Fixes
+
+- **deps:** Pin typescript 6 so pack does not use experimental tsgo ([d4ce891](https://github.com/xcvzmoon/open-fms/commit/d4ce891))
+- **packages:** Export dist entrypoints from built packages ([43055cb](https://github.com/xcvzmoon/open-fms/commit/43055cb))
+
+### 🏡 Chore
+
+- **todo:** Mark t11 as completed ([5daf80d](https://github.com/xcvzmoon/open-fms/commit/5daf80d))
+- **todo:** Mark t12 as completed ([493e548](https://github.com/xcvzmoon/open-fms/commit/493e548))
+- **todo:** Mark t13 as completed ([3453d73](https://github.com/xcvzmoon/open-fms/commit/3453d73))
+
+### 🤖 CI
+
+- Build scan-worker package before checks ([b47dc8f](https://github.com/xcvzmoon/open-fms/commit/b47dc8f))
+
+### ❤️ Contributors
+
+- Mon Albert Gamil ([@xcvzmoon](https://github.com/xcvzmoon))
+
 ## v0.0.4
 
 [compare changes](https://github.com/xcvzmoon/open-fms/compare/v0.0.3...v0.0.4)
