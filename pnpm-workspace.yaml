@@ -29,6 +29,9 @@ catalogs:
     drizzle-orm: 1.0.0-rc.5-5935859
     drizzle-kit: 1.0.0-rc.5-5935859
     postgres: ^3.4.9
+  otel:
+    '@opentelemetry/exporter-trace-otlp-http': 0.222.0
+    '@opentelemetry/sdk-node': 0.222.0
   storage:
     '@aws-sdk/client-s3': 3.1141.0
     '@aws-sdk/lib-storage': 3.1141.0
@@ -46,3 +49,4 @@ peerDependencyRules:
 
 allowBuilds:
   esbuild: true
+  protobufjs: true
