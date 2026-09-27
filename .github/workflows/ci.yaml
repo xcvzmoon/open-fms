@@ -56,23 +56,27 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
-      minio:
-        image: minio/minio:RELEASE.2025-10-15T17-29-55Z
+      storage:
+        image: rustfs/rustfs:1.0.0
         env:
-          MINIO_ROOT_USER: minioadmin
-          MINIO_ROOT_PASSWORD: minioadmin
+          RUSTFS_VOLUMES: /data
+          RUSTFS_ADDRESS: 0.0.0.0:9000
+          RUSTFS_ACCESS_KEY: rustfsadmin
+          RUSTFS_SECRET_KEY: rustfsadmin
+          RUSTFS_UNSAFE_BYPASS_DISK_CHECK: 'true'
         ports:
           - 9000:9000
         options: >-
-          --health-cmd "curl -f http://localhost:9000/minio/health/live"
+          --tmpfs /data
+          --health-cmd "curl -f http://127.0.0.1:9000/health"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 12
     env:
       DB_URL: postgres://open-fms:open-fms@localhost:5432/open-fms
       STORAGE_TEST_ENDPOINT: http://127.0.0.1:9000
-      STORAGE_TEST_ACCESS_KEY_ID: minioadmin
-      STORAGE_TEST_SECRET_ACCESS_KEY: minioadmin
+      STORAGE_TEST_ACCESS_KEY_ID: rustfsadmin
+      STORAGE_TEST_SECRET_ACCESS_KEY: rustfsadmin
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -85,21 +89,6 @@ jobs:
 
       - name: Run database migrations
         run: vp run --filter "@open-fms/database" migrate
-
-      - name: Create MinIO buckets
-        run: |
-          curl -fsSL https://dl.min.io/client/mc/release/linux-amd64/mc -o /usr/local/bin/mc
-          chmod +x /usr/local/bin/mc
-          i=0
-          until mc alias set local http://127.0.0.1:9000 minioadmin minioadmin; do
-            i=$((i+1))
-            if [ "$i" -ge 30 ]; then
-              echo "minio is not ready" >&2
-              exit 1
-            fi
-            sleep 1
-          done
-          mc mb --ignore-existing local/fms-quarantine local/fms-clean local/fms-forensic
 
       - name: Test
         run: vp run test

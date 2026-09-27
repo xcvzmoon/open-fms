@@ -1,49 +1,33 @@
 # Local S3-compatible backend for @open-fms/storage integration tests.
 #
 #   docker compose -f compose.storage.yml up -d --wait
-#   STORAGE_TEST_ENDPOINT=http://127.0.0.1:9000 vp run test
+#   STORAGE_TEST_ENDPOINT=http://127.0.0.1:9000 \
+#   STORAGE_TEST_ACCESS_KEY_ID=rustfsadmin \
+#   STORAGE_TEST_SECRET_ACCESS_KEY=rustfsadmin \
+#     vp run test
 #   docker compose -f compose.storage.yml down -v
 #
-# Credentials and bucket names match the defaults in
-# packages/storage/tests/adapter.integration.test.ts.
+# RustFS is a supported backend (StorageBackendKind). MinIO no longer publishes
+# official container images or binary downloads. The test suites create the
+# quarantine/clean/forensic buckets themselves.
 
 services:
-  minio:
-    image: minio/minio:RELEASE.2025-10-15T17-29-55Z
-    command: server /data --console-address ":9001"
+  storage:
+    image: rustfs/rustfs:1.0.0
     environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
+      RUSTFS_VOLUMES: /data
+      RUSTFS_ADDRESS: 0.0.0.0:9000
+      RUSTFS_CONSOLE_ADDRESS: 0.0.0.0:9001
+      RUSTFS_ACCESS_KEY: rustfsadmin
+      RUSTFS_SECRET_KEY: rustfsadmin
+      RUSTFS_UNSAFE_BYPASS_DISK_CHECK: 'true'
     ports:
       - '9000:9000'
       - '9001:9001'
-    volumes:
-      - minio-data:/data
+    tmpfs:
+      - /data
     healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://localhost:9000/minio/health/live']
+      test: ['CMD', 'curl', '-f', 'http://127.0.0.1:9000/health']
       interval: 5s
       timeout: 5s
       retries: 12
-
-  create-buckets:
-    image: minio/mc:RELEASE.2025-08-13T08-35-41Z
-    depends_on:
-      minio:
-        condition: service_healthy
-    entrypoint:
-      - /bin/sh
-      - -c
-      - |
-        i=0
-        until mc alias set local http://minio:9000 minioadmin minioadmin; do
-          i=$$((i+1))
-          if [ $$i -ge 30 ]; then
-            echo "minio is not ready" >&2
-            exit 1
-          fi
-          sleep 1
-        done
-        mc mb --ignore-existing local/fms-quarantine local/fms-clean local/fms-forensic
-
-volumes:
-  minio-data:

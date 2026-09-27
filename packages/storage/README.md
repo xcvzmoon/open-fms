@@ -24,7 +24,10 @@ Unit tests cover construction and presign URL shape. Separate suites hit a real 
 
 ```bash
 docker compose -f ../../compose.storage.yml up -d --wait
-STORAGE_TEST_ENDPOINT=http://127.0.0.1:9000 vp run test
+STORAGE_TEST_ENDPOINT=http://127.0.0.1:9000 \
+STORAGE_TEST_ACCESS_KEY_ID=rustfsadmin \
+STORAGE_TEST_SECRET_ACCESS_KEY=rustfsadmin \
+  vp run test
 ```
 
-Without `STORAGE_TEST_ENDPOINT` the suites are skipped. Defaults match `compose.storage.yml` (`minioadmin`, path-style, `fms-quarantine` / `fms-clean` / `fms-forensic`). Point the same variables at RustFS, MinIO, or AWS S3 when validating a real backend; create the three buckets first.
+Without `STORAGE_TEST_ENDPOINT` the suites are skipped. The suites create the quarantine/clean/forensic buckets on first run. Defaults match a local MinIO with `minioadmin` (override with `STORAGE_TEST_*` to use RustFS or AWS S3).

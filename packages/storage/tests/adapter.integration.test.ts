@@ -2,6 +2,7 @@ import type { ObjectLocation, S3StorageAdapter, StorageBackendConfig } from '../
 import { Readable } from 'node:stream';
 import { afterAll, beforeAll, describe, expect, test } from 'vite-plus/test';
 import { createStorageAdapter } from '../src/index.ts';
+import { ensureTestBuckets } from './ensure-buckets.ts';
 
 const endpoint = process.env.STORAGE_TEST_ENDPOINT;
 
@@ -57,7 +58,11 @@ describe.skipIf(!endpoint)('S3StorageAdapter against a real backend', () => {
     return location;
   }
 
-  beforeAll(() => {
+  beforeAll(async () => {
+    await ensureTestBuckets({
+      config,
+      credentials: { accessKeyId, secretAccessKey },
+    });
     storage = createStorageAdapter({
       config,
       credentials: { accessKeyId, secretAccessKey },
