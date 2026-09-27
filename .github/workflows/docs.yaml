@@ -40,6 +40,8 @@ jobs:
 
       - name: Build docs site
         working-directory: docs
+        env:
+          NUXT_APP_BASE_URL: /open-fms/
         run: pnpm run build
 
       - name: Upload Pages artifact
