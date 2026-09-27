@@ -1,7 +1,7 @@
 {
   "name": "buildr",
   "description": "An opinionated monorepo foundation for building modern full-stack TypeScript applications",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "type": "module",
   "private": true,
   "scripts": {

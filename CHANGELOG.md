@@ -1,5 +1,54 @@
 # Changelog
 
+## v0.0.6
+
+[compare changes](https://github.com/xcvzmoon/open-fms/compare/v0.0.5...v0.0.6)
+
+### 🚀 Enhancements
+
+- **database:** Add readyz ping helper and otel deps ([c4b1797](https://github.com/xcvzmoon/open-fms/commit/c4b1797))
+- **api:** Add health endpoints otel bootstrap and canary ([ef2612d](https://github.com/xcvzmoon/open-fms/commit/ef2612d))
+- **lifecycle:** Add scanning transition and sealed etag promotion check ([ed6e651](https://github.com/xcvzmoon/open-fms/commit/ed6e651))
+- **api:** Add openapi scalar docs and drop unused lru-cache ([ae09664](https://github.com/xcvzmoon/open-fms/commit/ae09664))
+- **database:** Reconcile storage objects and upsert caller credentials ([a080f4f](https://github.com/xcvzmoon/open-fms/commit/a080f4f))
+- **api:** Add reconcile sweeper and storage canary ([0ac82f8](https://github.com/xcvzmoon/open-fms/commit/0ac82f8))
+
+### 🩹 Fixes
+
+- **ci:** Build workspace packages before release checks ([0896ba1](https://github.com/xcvzmoon/open-fms/commit/0896ba1))
+- **api:** Align scheduled task names with nitro scanner ([8979e17](https://github.com/xcvzmoon/open-fms/commit/8979e17))
+- **docs:** Type-safe nuxt config for pages base url ([bf1b2db](https://github.com/xcvzmoon/open-fms/commit/bf1b2db))
+- **docs:** Set pages base url for github pages assets ([f125513](https://github.com/xcvzmoon/open-fms/commit/f125513))
+
+### 📖 Documentation
+
+- Replace plan and todo with comprehensive project docs ([bdadd22](https://github.com/xcvzmoon/open-fms/commit/bdadd22))
+- Add undocs documentation site ([fb28711](https://github.com/xcvzmoon/open-fms/commit/fb28711))
+- Restyle undocs landing with geist and included grid ([a17b73b](https://github.com/xcvzmoon/open-fms/commit/a17b73b))
+
+### 🏡 Chore
+
+- **todo:** Mark t14 as completed ([17095d2](https://github.com/xcvzmoon/open-fms/commit/17095d2))
+- **todo:** Mark t15 as completed ([f13bee7](https://github.com/xcvzmoon/open-fms/commit/f13bee7))
+- **todo:** Mark t16 as completed ([cb854bf](https://github.com/xcvzmoon/open-fms/commit/cb854bf))
+
+### ✅ Tests
+
+- **lifecycle:** Cover integration scenarios with controllable storage ([4dfe371](https://github.com/xcvzmoon/open-fms/commit/4dfe371))
+- Cover token email and scan edge cases ([d9c7143](https://github.com/xcvzmoon/open-fms/commit/d9c7143))
+
+### 🎨 Styles
+
+- **docs:** Format markdown ([9614dd9](https://github.com/xcvzmoon/open-fms/commit/9614dd9))
+
+### 🤖 CI
+
+- Deploy docs to github pages ([8c39a07](https://github.com/xcvzmoon/open-fms/commit/8c39a07))
+
+### ❤️ Contributors
+
+- Mon Albert Gamil ([@xcvzmoon](https://github.com/xcvzmoon))
+
 ## v0.0.5
 
 [compare changes](https://github.com/xcvzmoon/open-fms/compare/v0.0.4...v0.0.5)
