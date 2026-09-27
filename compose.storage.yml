@@ -14,7 +14,7 @@
 services:
   storage:
     image: rustfs/rustfs:1.0.0
-    user: "0:0"
+    user: '0:0'
     environment:
       RUSTFS_VOLUMES: /data
       RUSTFS_ADDRESS: 0.0.0.0:9000
