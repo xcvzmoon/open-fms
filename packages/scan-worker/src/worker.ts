@@ -6,7 +6,7 @@ import {
   loadStorageBackend,
   markScanJobRunning,
 } from '@open-fms/database';
-import { applyScanVerdict } from '@open-fms/lifecycle';
+import { applyScanVerdict, markScanning } from '@open-fms/lifecycle';
 import { createStorageAdapter, type S3StorageAdapter } from '@open-fms/storage';
 import {
   checkStructure,
@@ -84,6 +84,12 @@ export async function processScanJob(
     credentials: config.storageCredentials,
   });
 
+  let scanRowVersion = file.rowVersion;
+  if (file.status === 'quarantined') {
+    await markScanning({ fileId: file.id, expectedRowVersion: file.rowVersion });
+    scanRowVersion = file.rowVersion + 1;
+  }
+
   try {
     const bytes = await loadObjectBytes(storage, backend.quarantineBucket, file.objectKey);
     const inspected = await sniffContentType(bytes);
@@ -98,7 +104,7 @@ export async function processScanJob(
       if (isFileStatus(file.status)) {
         await applyScanVerdict({
           fileId: file.id,
-          expectedRowVersion: file.rowVersion,
+          expectedRowVersion: scanRowVersion,
           verdict: 'rejected',
           storage: {
             copyObject: (input) => storage.copyObject(input),
@@ -123,7 +129,7 @@ export async function processScanJob(
         if (isFileStatus(file.status)) {
           await applyScanVerdict({
             fileId: file.id,
-            expectedRowVersion: file.rowVersion,
+            expectedRowVersion: scanRowVersion,
             verdict: 'infected',
             storage: {
               copyObject: (input) => storage.copyObject(input),
@@ -153,7 +159,7 @@ export async function processScanJob(
     if (isFileStatus(file.status)) {
       await applyScanVerdict({
         fileId: file.id,
-        expectedRowVersion: file.rowVersion,
+        expectedRowVersion: scanRowVersion,
         verdict: 'clean',
         storage: {
           copyObject: (input) => storage.copyObject(input),
