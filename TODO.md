@@ -15,4 +15,4 @@
 - [x] **T13** Scheduled sweepers: stale files, expired sessions/codes, retention, purge, reconcile (all through the lifecycle module)
 - [x] **T14** Health and observability: `/healthz` and `/readyz` as separate signals, OTel bootstrap before server start, metrics + scheduled canary upload/scan/download
 - [x] **T15** Tests: lifecycle interface tests on a real test DB with controllable storage — crashes/retries between storage and DB, duplicate completions, stale ETags, quota release, download denial before `clean`
-- [ ] **T16** Verification pass: `vp run check` → `typecheck` → `test` → `build` all green; backend compatibility tests (PLAN.md §19) before enabling any S3 deployment
+- [x] **T16** Verification pass: `vp run check` → `typecheck` → `test` → `build` all green; backend compatibility tests (PLAN.md §19) before enabling any S3 deployment

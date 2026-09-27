@@ -4,7 +4,11 @@ export function emailDomain(email: string): string {
 }
 
 export function isEmailDomainAllowed(email: string, allowedDomains: readonly string[]): boolean {
-  const domain = emailDomain(email);
+  const at = email.lastIndexOf('@');
+  if (at <= 0 || at >= email.length - 1) {
+    return false;
+  }
+  const domain = email.slice(at + 1).toLowerCase();
   if (!domain) {
     return false;
   }

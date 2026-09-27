@@ -18,7 +18,6 @@
     "@open-fms/storage": "workspace:*",
     "better-auth": "catalog:",
     "h3": "catalog:",
-    "lru-cache": "catalog:",
     "valibot": "catalog:"
   },
   "devDependencies": {

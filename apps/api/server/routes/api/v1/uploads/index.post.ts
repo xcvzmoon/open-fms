@@ -1,7 +1,20 @@
-import { defineHandler } from 'nitro';
+import { defineHandler, defineRouteMeta } from 'nitro';
 import { HTTPError, readBody } from 'nitro/h3';
 import * as v from 'valibot';
 import { startUpload } from '~/server/uploads/service.ts';
+
+defineRouteMeta({
+  openAPI: {
+    tags: ['uploads'],
+    summary: 'Create upload',
+    description: 'Creates a file and upload session and reserves quota.',
+    responses: {
+      200: { description: 'Upload created' },
+      403: { description: 'Caller not active' },
+      413: { description: 'Quota exceeded' },
+    },
+  },
+});
 
 const schema = v.object({
   storageBackendId: v.pipe(v.string(), v.minLength(1)),

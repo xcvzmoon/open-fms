@@ -1,8 +1,31 @@
 import { LifecycleError } from '@open-fms/lifecycle';
-import { defineHandler } from 'nitro';
+import { defineHandler, defineRouteMeta } from 'nitro';
 import { HTTPError } from 'nitro/h3';
 import { resolveDownloadCredentials } from '~/server/downloads/credentials.ts';
 import { openDownload } from '~/server/downloads/service.ts';
+
+defineRouteMeta({
+  openAPI: {
+    tags: ['files'],
+    summary: 'Download file content',
+    description:
+      'Proxies bytes from the clean bucket. Only clean files are downloadable. Supports Range.',
+    parameters: [
+      {
+        in: 'header',
+        name: 'range',
+        description: 'HTTP byte range, for example bytes=0-1023',
+        schema: { type: 'string' },
+      },
+    ],
+    responses: {
+      200: { description: 'Full object stream' },
+      206: { description: 'Partial content' },
+      403: { description: 'Not downloadable (capability or status)' },
+      404: { description: 'File not found' },
+    },
+  },
+});
 
 export default defineHandler(async (event) => {
   const caller = event.context.caller;

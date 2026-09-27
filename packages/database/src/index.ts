@@ -55,6 +55,13 @@ export {
 } from './queries/scan-jobs.ts';
 export { pingDatabase } from './queries/health.ts';
 export {
+  reconcileFileObjects,
+  upsertCallerCredential,
+  type ReconcileMismatch,
+  type ReconcileResult,
+  type ReconcileStorage,
+} from './queries/reconcile.ts';
+export {
   expireSetupCodes,
   expireUploadPasses,
   expireUploadSessions,
