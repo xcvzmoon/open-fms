@@ -4,7 +4,7 @@ import { defineTask } from 'nitro/task';
 
 export default defineTask({
   meta: {
-    name: 'sweep:purge',
+    name: 'sweep-purge',
     description: 'Soft-delete files past purge_after when legal hold is clear',
   },
   async run() {

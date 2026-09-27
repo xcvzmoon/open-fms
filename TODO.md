@@ -14,5 +14,5 @@
 - [x] **T12** Downloads: `clean`-state gate, proxy stream with range headers, short presigned GET behind caller capability (enabled only after revocation policy is documented)
 - [x] **T13** Scheduled sweepers: stale files, expired sessions/codes, retention, purge, reconcile (all through the lifecycle module)
 - [x] **T14** Health and observability: `/healthz` and `/readyz` as separate signals, OTel bootstrap before server start, metrics + scheduled canary upload/scan/download
-- [ ] **T15** Tests: lifecycle interface tests on a real test DB with controllable storage — crashes/retries between storage and DB, duplicate completions, stale ETags, quota release, download denial before `clean`
+- [x] **T15** Tests: lifecycle interface tests on a real test DB with controllable storage — crashes/retries between storage and DB, duplicate completions, stale ETags, quota release, download denial before `clean`
 - [ ] **T16** Verification pass: `vp run check` → `typecheck` → `test` → `build` all green; backend compatibility tests (PLAN.md §19) before enabling any S3 deployment

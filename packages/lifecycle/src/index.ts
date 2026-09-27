@@ -6,6 +6,7 @@ export {
   createFileWithUploadSession,
   expireStaleUpload,
   markDeleted,
+  markScanning,
   markUploading,
   purgeFile,
   type CreateFileInput,

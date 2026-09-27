@@ -234,6 +234,18 @@ export async function completeAndEnqueueScan(input: {
   });
 }
 
+export async function markScanning(input: {
+  fileId: string;
+  expectedRowVersion: number;
+}): Promise<void> {
+  await transitionFile({
+    fileId: input.fileId,
+    expectedStatus: 'quarantined',
+    expectedRowVersion: input.expectedRowVersion,
+    toStatus: 'scanning',
+  });
+}
+
 export async function applyScanVerdict(input: {
   fileId: string;
   expectedRowVersion: number;
@@ -256,7 +268,7 @@ export async function applyScanVerdict(input: {
       bucket: input.cleanBucket,
       key: input.objectKey,
     });
-    if (head.etag !== copied.etag && head.etag !== input.sealedEtag) {
+    if (copied.etag !== input.sealedEtag && head.etag !== input.sealedEtag) {
       throw new LifecycleError('STORAGE_PROMOTE_MISMATCH');
     }
 

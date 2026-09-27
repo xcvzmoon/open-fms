@@ -3,7 +3,7 @@ import { runProcessCanary } from '~/server/observability/canary.ts';
 
 export default defineTask({
   meta: {
-    name: 'observability:canary',
+    name: 'observability-canary',
     description: 'Run the scheduled process canary',
   },
   run() {
