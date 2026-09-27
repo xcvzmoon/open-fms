@@ -10,9 +10,9 @@ export default defineConfig({
     tasks: true,
   },
   scheduledTasks: {
-    '*/15 * * * *': 'sweep:expired',
-    '0 * * * *': 'sweep:purge',
-    '*/5 * * * *': 'observability:canary',
+    '*/15 * * * *': 'sweep-expired',
+    '0 * * * *': 'sweep-purge',
+    '*/5 * * * *': 'observability-canary',
   },
   alias: {
     '~': appRoot,

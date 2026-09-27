@@ -10,7 +10,7 @@ import { defineTask } from 'nitro/task';
 
 export default defineTask({
   meta: {
-    name: 'sweep:expired',
+    name: 'sweep-expired',
     description: 'Expire setup codes, upload passes, upload sessions, and stale uploads',
   },
   async run() {
