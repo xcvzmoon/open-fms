@@ -1,6 +1,6 @@
-export default defineNuxtConfig({
+export default {
   css: ['~/assets/css/main.css'],
   app: {
     baseURL: '/open-fms/',
   },
-});
+};
