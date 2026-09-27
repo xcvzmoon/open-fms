@@ -60,6 +60,7 @@ describe.skipIf(!hasDatabase)('lifecycle integration', () => {
       originalFilename: 'file.bin',
       declaredContentType: 'application/octet-stream',
       declaredSizeBytes: 1024,
+      mode: 'proxy_single',
       expiresAt: new Date(Date.now() + 60_000),
     });
     await lifecycle.markUploading({ fileId: created.fileId, expectedRowVersion: 1 });
@@ -130,6 +131,7 @@ describe.skipIf(!hasDatabase)('lifecycle integration', () => {
       originalFilename: 'stale.bin',
       declaredContentType: null,
       declaredSizeBytes: 10,
+      mode: 'proxy_single',
       expiresAt: new Date(Date.now() + 60_000),
     });
     await lifecycle.markUploading({ fileId: created.fileId, expectedRowVersion: 1 });
@@ -189,6 +191,7 @@ describe.skipIf(!hasDatabase)('lifecycle integration', () => {
       originalFilename: 'dup.bin',
       declaredContentType: null,
       declaredSizeBytes: 8,
+      mode: 'proxy_single',
       expiresAt: new Date(Date.now() + 60_000),
     });
     await lifecycle.markUploading({ fileId: created.fileId, expectedRowVersion: 1 });
@@ -225,6 +228,7 @@ describe.skipIf(!hasDatabase)('lifecycle integration', () => {
       originalFilename: 'abort.bin',
       declaredContentType: null,
       declaredSizeBytes: 4096,
+      mode: 'proxy_single',
       expiresAt: new Date(Date.now() + 60_000),
     });
 
@@ -263,6 +267,7 @@ describe.skipIf(!hasDatabase)('lifecycle integration', () => {
       originalFilename: 'blocked.bin',
       declaredContentType: null,
       declaredSizeBytes: 1,
+      mode: 'proxy_single',
       expiresAt: new Date(Date.now() + 60_000),
     });
 
@@ -288,6 +293,7 @@ describe.skipIf(!hasDatabase)('lifecycle integration', () => {
       originalFilename: 'copyfail.bin',
       declaredContentType: null,
       declaredSizeBytes: 4,
+      mode: 'proxy_single',
       expiresAt: new Date(Date.now() + 60_000),
     });
     await lifecycle.markUploading({ fileId: created.fileId, expectedRowVersion: 1 });
@@ -343,6 +349,7 @@ describe.skipIf(!hasDatabase)('lifecycle integration', () => {
       originalFilename: 'purge.bin',
       declaredContentType: null,
       declaredSizeBytes: 2,
+      mode: 'proxy_single',
       expiresAt: new Date(Date.now() + 60_000),
     });
     await lifecycle.markUploading({ fileId: created.fileId, expectedRowVersion: 1 });
