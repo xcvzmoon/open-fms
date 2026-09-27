@@ -71,6 +71,16 @@ export {
   type PurgeableFile,
   type StaleUploadFile,
 } from './queries/sweeps.ts';
+export {
+  attachMultipartUploadId,
+  listUploadParts,
+  loadUploadSessionByFileId,
+  markUploadSessionStatus,
+  recordUploadPart,
+  type UploadPartRecord,
+  type UploadSessionMode,
+  type UploadSessionRecord,
+} from './queries/uploads.ts';
 export { fmsSchema } from './schema.ts';
 export {
   generateHashedToken,

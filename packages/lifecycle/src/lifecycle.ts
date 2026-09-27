@@ -3,6 +3,8 @@ import { and, eq, sql } from 'drizzle-orm';
 import { canTransition, isDownloadableStatus, type FileStatus } from './status.ts';
 import { LifecycleError, type LifecycleStorage } from './types.ts';
 
+export type UploadMode = 'proxy_single' | 'proxy_parts' | 'direct';
+
 export type CreateFileInput = {
   callerId: string;
   storageBackendId: string;
@@ -10,6 +12,7 @@ export type CreateFileInput = {
   originalFilename: string;
   declaredContentType: string | null;
   declaredSizeBytes: number | null;
+  mode: UploadMode;
   ownerRef?: string | null;
   idempotencyKey?: string | null;
   expiresAt: Date;
@@ -116,6 +119,7 @@ export async function createFileWithUploadSession(input: CreateFileInput): Promi
       .values({
         fileId: fileRow.id,
         callerId: input.callerId,
+        mode: input.mode,
         status: 'initiated',
         declaredSizeBytes: input.declaredSizeBytes,
         expiresAt: input.expiresAt,

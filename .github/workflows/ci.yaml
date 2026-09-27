@@ -56,8 +56,28 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
+      storage:
+        image: rustfs/rustfs:1.0.0
+        env:
+          RUSTFS_VOLUMES: /data
+          RUSTFS_ADDRESS: 0.0.0.0:9000
+          RUSTFS_ACCESS_KEY: rustfsadmin
+          RUSTFS_SECRET_KEY: rustfsadmin
+          RUSTFS_UNSAFE_BYPASS_DISK_CHECK: 'true'
+        ports:
+          - 9000:9000
+        options: >-
+          --user 0:0
+          --tmpfs /data
+          --health-cmd "curl -f http://127.0.0.1:9000/health"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
     env:
       DB_URL: postgres://open-fms:open-fms@localhost:5432/open-fms
+      STORAGE_TEST_ENDPOINT: http://127.0.0.1:9000
+      STORAGE_TEST_ACCESS_KEY_ID: rustfsadmin
+      STORAGE_TEST_SECRET_ACCESS_KEY: rustfsadmin
     steps:
       - name: Checkout
         uses: actions/checkout@v7

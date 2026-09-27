@@ -13,3 +13,21 @@ This is the only package allowed to import `@aws-sdk/*`.
 ## Config
 
 Backend rows come from `storage_backends` (endpoint, region, buckets, path-style flag). Credentials are injected by the caller and never stored in the adapter.
+
+## Integration tests
+
+Unit tests cover construction and presign URL shape. Separate suites hit a real S3-compatible endpoint and cover:
+
+- put/get/range/copy/delete and live presigned PUT
+- multipart create/uploadPart/complete/abort
+- resumable `proxy_parts` behavior (out-of-order parts, retries, 5 MiB non-final part rule, abort)
+
+```bash
+docker compose -f ../../compose.storage.yml up -d --wait
+STORAGE_TEST_ENDPOINT=http://127.0.0.1:9000 \
+STORAGE_TEST_ACCESS_KEY_ID=rustfsadmin \
+STORAGE_TEST_SECRET_ACCESS_KEY=rustfsadmin \
+  vp run test
+```
+
+Without `STORAGE_TEST_ENDPOINT` the suites are skipped. The suites create the quarantine/clean/forensic buckets on first run. Defaults match a local MinIO with `minioadmin` (override with `STORAGE_TEST_*` to use RustFS or AWS S3).

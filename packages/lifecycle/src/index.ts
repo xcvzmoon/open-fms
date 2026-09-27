@@ -12,6 +12,7 @@ export {
   type CreateFileInput,
   type CreatedFile,
   type GuardedTransitionInput,
+  type UploadMode,
 } from './lifecycle.ts';
 export {
   canTransition,

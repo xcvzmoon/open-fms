@@ -23,6 +23,7 @@ export const uploadSessions = fmsSchema.table(
     })
       .notNull()
       .default('initiated'),
+    multipartUploadId: text('multipart_upload_id'),
     declaredSizeBytes: bigint('declared_size_bytes', { mode: 'number' }),
     receivedSizeBytes: bigint('received_size_bytes', { mode: 'number' }).notNull().default(0),
     partSizeBytes: integer('part_size_bytes').notNull().default(16_777_216),

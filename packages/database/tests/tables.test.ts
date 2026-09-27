@@ -141,6 +141,7 @@ describe('uploads', () => {
         'fileId',
         'mode',
         'status',
+        'multipartUploadId',
         'partSizeBytes',
         'expiresAt',
         'rowVersion',
