@@ -348,3 +348,21 @@ export function assertDownloadable(status: FileStatus): void {
     throw new LifecycleError('FILE_NOT_DOWNLOADABLE');
   }
 }
+
+export async function expireStaleUpload(input: {
+  fileId: string;
+  expectedStatus: 'initiated' | 'uploading';
+  expectedRowVersion: number;
+  reservedBytes: number;
+  reason: string;
+}): Promise<void> {
+  await abortFile(input);
+}
+
+export async function purgeFile(input: {
+  fileId: string;
+  expectedStatus: 'clean' | 'infected' | 'rejected' | 'failed';
+  expectedRowVersion: number;
+}): Promise<void> {
+  await markDeleted(input);
+}
