@@ -1,0 +1,1 @@
+ALTER TABLE "fms"."upload_sessions" ADD COLUMN "multipart_upload_id" text;
