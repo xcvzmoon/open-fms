@@ -22,6 +22,7 @@ export const scanJobs = fmsSchema.table(
     scanPolicyVersion: text('scan_policy_version'),
     claimedAt: timestamp('claimed_at', { withTimezone: true }),
     claimedBy: text('claimed_by'),
+    leaseToken: text('lease_token'),
     leaseExpiresAt: timestamp('lease_expires_at', { withTimezone: true }),
     availableAt: timestamp('available_at', { withTimezone: true }).notNull().defaultNow(),
     startedAt: timestamp('started_at', { withTimezone: true }),

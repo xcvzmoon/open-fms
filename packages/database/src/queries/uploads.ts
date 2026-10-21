@@ -1,83 +1,44 @@
-import { eq } from 'drizzle-orm';
+import { and, eq, gt, sql } from 'drizzle-orm';
 import { db } from '../client.ts';
 import { uploadParts, uploadSessions } from '../tables/index.ts';
 
-export type UploadSessionMode = 'proxy_single' | 'proxy_parts' | 'direct';
-
-export type UploadSessionRecord = {
-  id: string;
-  fileId: string;
-  callerId: string;
-  mode: UploadSessionMode;
-  status: 'initiated' | 'uploading' | 'completing' | 'completed' | 'aborted' | 'expired';
-  multipartUploadId: string | null;
-  receivedSizeBytes: number;
-  partCount: number;
-  expiresAt: Date;
-  rowVersion: number;
-};
-
-export type UploadPartRecord = {
-  id: string;
-  uploadSessionId: string;
-  partNumber: number;
-  sizeBytes: number;
-  etag: string;
-  checksumSha256: Buffer | null;
-};
-
-function toUploadSessionRecord(row: {
-  id: string;
-  fileId: string;
-  callerId: string;
-  mode: UploadSessionMode;
-  status: UploadSessionRecord['status'];
-  multipartUploadId: string | null;
-  receivedSizeBytes: number;
-  partCount: number;
-  expiresAt: Date;
-  rowVersion: number;
-}): UploadSessionRecord {
-  return {
-    id: row.id,
-    fileId: row.fileId,
-    callerId: row.callerId,
-    mode: row.mode,
-    status: row.status,
-    multipartUploadId: row.multipartUploadId,
-    receivedSizeBytes: row.receivedSizeBytes,
-    partCount: row.partCount,
-    expiresAt: row.expiresAt,
-    rowVersion: row.rowVersion,
-  };
-}
+export type UploadSessionMode = 'proxy_single' | 'proxy_parts';
+export type UploadSessionRecord = typeof uploadSessions.$inferSelect;
+export type UploadPartRecord = typeof uploadParts.$inferSelect;
 
 export async function loadUploadSessionByFileId(
   fileId: string,
 ): Promise<UploadSessionRecord | null> {
-  const rows = await db
+  const [session] = await db
     .select()
     .from(uploadSessions)
     .where(eq(uploadSessions.fileId, fileId))
     .limit(1);
-  const row = rows[0];
-  return row ? toUploadSessionRecord(row) : null;
+  return session ?? null;
 }
-
 export async function attachMultipartUploadId(input: {
   uploadSessionId: string;
   multipartUploadId: string;
 }): Promise<void> {
-  await db
+  const [session] = await db
     .update(uploadSessions)
     .set({
       multipartUploadId: input.multipartUploadId,
       status: 'uploading',
+      rowVersion: sql`${uploadSessions.rowVersion} + 1`,
       updatedAt: new Date(),
     })
-    .where(eq(uploadSessions.id, input.uploadSessionId));
+    .where(
+      and(
+        eq(uploadSessions.id, input.uploadSessionId),
+        sql`${uploadSessions.status} IN ('initiated', 'uploading')`,
+        gt(uploadSessions.expiresAt, new Date()),
+        sql`${uploadSessions.multipartUploadId} IS NULL`,
+      ),
+    )
+    .returning({ id: uploadSessions.id });
+  if (!session) throw new Error('UPLOAD_SESSION_INVALID');
 }
-
 export async function recordUploadPart(input: {
   uploadSessionId: string;
   partNumber: number;
@@ -85,88 +46,82 @@ export async function recordUploadPart(input: {
   etag: string;
   checksumSha256: Buffer;
 }): Promise<void> {
-  await db
-    .insert(uploadParts)
-    .values({
-      uploadSessionId: input.uploadSessionId,
-      partNumber: input.partNumber,
-      sizeBytes: input.sizeBytes,
-      etag: input.etag,
-      checksumSha256: input.checksumSha256,
-    })
-    .onConflictDoUpdate({
-      target: [uploadParts.uploadSessionId, uploadParts.partNumber],
-      set: {
-        sizeBytes: input.sizeBytes,
-        etag: input.etag,
-        checksumSha256: input.checksumSha256,
+  await db.transaction(async (tx) => {
+    const [session] = await tx
+      .select()
+      .from(uploadSessions)
+      .where(eq(uploadSessions.id, input.uploadSessionId))
+      .for('update');
+    if (
+      session?.mode !== 'proxy_parts' ||
+      session.status !== 'uploading' ||
+      session.expiresAt <= new Date() ||
+      session.declaredSizeBytes === null
+    )
+      throw new Error('UPLOAD_SESSION_INVALID');
+    const [previous] = await tx
+      .select()
+      .from(uploadParts)
+      .where(
+        and(
+          eq(uploadParts.uploadSessionId, session.id),
+          eq(uploadParts.partNumber, input.partNumber),
+        ),
+      );
+    const receivedSizeBytes =
+      session.receivedSizeBytes - (previous?.sizeBytes ?? 0) + input.sizeBytes;
+    if (!Number.isSafeInteger(receivedSizeBytes) || receivedSizeBytes > session.declaredSizeBytes)
+      throw new Error('UPLOAD_SIZE_MISMATCH');
+    await tx
+      .insert(uploadParts)
+      .values(input)
+      .onConflictDoUpdate({
+        target: [uploadParts.uploadSessionId, uploadParts.partNumber],
+        set: {
+          sizeBytes: input.sizeBytes,
+          etag: input.etag,
+          checksumSha256: input.checksumSha256,
+          updatedAt: new Date(),
+        },
+      });
+    await tx
+      .update(uploadSessions)
+      .set({
+        receivedSizeBytes,
+        partCount: session.partCount + (previous ? 0 : 1),
+        rowVersion: sql`${uploadSessions.rowVersion} + 1`,
         updatedAt: new Date(),
-      },
-    });
-
-  const partRows = await db
-    .select({ sizeBytes: uploadParts.sizeBytes })
-    .from(uploadParts)
-    .where(eq(uploadParts.uploadSessionId, input.uploadSessionId));
-  let receivedSizeBytes = 0;
-  for (const part of partRows) {
-    receivedSizeBytes += part.sizeBytes;
-  }
-
-  await db
-    .update(uploadSessions)
-    .set({
-      receivedSizeBytes,
-      partCount: partRows.length,
-      status: 'uploading',
-      updatedAt: new Date(),
-    })
-    .where(eq(uploadSessions.id, input.uploadSessionId));
+      })
+      .where(eq(uploadSessions.id, session.id));
+  });
 }
-
 export async function listUploadParts(uploadSessionId: string): Promise<UploadPartRecord[]> {
-  const rows = await db
+  return db
     .select()
     .from(uploadParts)
     .where(eq(uploadParts.uploadSessionId, uploadSessionId))
     .orderBy(uploadParts.partNumber);
-  return rows.map((row) => ({
-    id: row.id,
-    uploadSessionId: row.uploadSessionId,
-    partNumber: row.partNumber,
-    sizeBytes: row.sizeBytes,
-    etag: row.etag,
-    checksumSha256: row.checksumSha256,
-  }));
 }
-
 export async function markUploadSessionStatus(input: {
   uploadSessionId: string;
-  status: 'uploading' | 'completing' | 'completed' | 'aborted' | 'expired';
-  abortReason?: string | null;
+  status: UploadSessionRecord['status'];
+  abortReason?: string;
 }): Promise<void> {
-  const now = new Date();
-  if (input.status === 'completed') {
-    await db
-      .update(uploadSessions)
-      .set({ status: input.status, completedAt: now, updatedAt: now })
-      .where(eq(uploadSessions.id, input.uploadSessionId));
-    return;
-  }
-  if (input.status === 'aborted') {
-    await db
-      .update(uploadSessions)
-      .set({
-        status: input.status,
-        abortedAt: now,
-        abortReason: input.abortReason ?? null,
-        updatedAt: now,
-      })
-      .where(eq(uploadSessions.id, input.uploadSessionId));
-    return;
-  }
-  await db
+  const [session] = await db
     .update(uploadSessions)
-    .set({ status: input.status, updatedAt: now })
-    .where(eq(uploadSessions.id, input.uploadSessionId));
+    .set({
+      status: input.status,
+      abortReason: input.abortReason,
+      rowVersion: sql`${uploadSessions.rowVersion} + 1`,
+      updatedAt: new Date(),
+    })
+    .where(
+      and(
+        eq(uploadSessions.id, input.uploadSessionId),
+        sql`${uploadSessions.status} IN ('initiated', 'uploading', 'completing')`,
+        gt(uploadSessions.expiresAt, new Date()),
+      ),
+    )
+    .returning({ id: uploadSessions.id });
+  if (!session) throw new Error('UPLOAD_SESSION_INVALID');
 }

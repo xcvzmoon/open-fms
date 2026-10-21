@@ -1,15 +1,6 @@
-import {
-  bigint,
-  boolean,
-  index,
-  integer,
-  jsonb,
-  smallint,
-  text,
-  timestamp,
-  uuid,
-} from 'drizzle-orm/pg-core';
-import { generateTimestamps, generateTimestampsWithAudit, generateUuid } from '../helpers/index.ts';
+import { bigint, boolean, index, integer, jsonb, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { authUsers } from '../auth/schema.ts';
+import { generateTimestamps, generateUuid } from '../helpers/index.ts';
 import { fmsSchema } from '../schema.ts';
 import { bytea } from '../types.ts';
 
@@ -38,6 +29,13 @@ export const callers = fmsSchema.table(
   'callers',
   {
     id: generateUuid('id'),
+    ownerUserId: text('owner_user_id')
+      .notNull()
+      .unique()
+      .references(() => authUsers.id, { onDelete: 'restrict' }),
+    approvedAt: timestamp('approved_at', { withTimezone: true }),
+    rateWindowStart: timestamp('rate_window_start', { withTimezone: true }),
+    rateWindowCount: integer('rate_window_count').notNull().default(0),
     name: text('name').notNull().unique(),
     kind: text('kind', { enum: ['app', 'admin'] })
       .notNull()
@@ -58,10 +56,11 @@ export const callers = fmsSchema.table(
     allowedContentTypes: text('allowed_content_types').array().notNull().default([]),
     quotaBytes: bigint('quota_bytes', { mode: 'number' }),
     rateLimitPerSec: integer('rate_limit_per_sec'),
-    allowDirectUpload: boolean('allow_direct_upload').notNull().default(false),
-    allowDirectDownload: boolean('allow_direct_download').notNull().default(false),
     retentionDays: integer('retention_days'),
-    ...generateTimestampsWithAudit(),
+    ...generateTimestamps(),
+    createdBy: text('created_by').notNull(),
+    updatedBy: text('updated_by'),
+    deletedBy: text('deleted_by'),
   },
   (table) => [index('callers_status_idx').on(table.status)],
 );
@@ -79,8 +78,6 @@ export const callerCredentials = fmsSchema.table(
       .default('standard'),
     keyPrefix: text('key_prefix').notNull(),
     keyId: text('key_id').notNull().unique(),
-    secretHash: bytea('secret_hash').notNull(),
-    pepperVersion: smallint('pepper_version').notNull(),
     scopes: text('scopes').array().notNull().default([]),
     allowedCidrs: text('allowed_cidrs').array().notNull().default([]),
     allowedTypes: text('allowed_types').array().notNull().default([]),
@@ -90,7 +87,10 @@ export const callerCredentials = fmsSchema.table(
     revokedAt: timestamp('revoked_at', { withTimezone: true }),
     revokedReason: text('revoked_reason'),
     lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
-    ...generateTimestampsWithAudit(),
+    ...generateTimestamps(),
+    createdBy: text('created_by').notNull(),
+    updatedBy: text('updated_by'),
+    deletedBy: text('deleted_by'),
   },
   (table) => [index('caller_credentials_caller_id_idx').on(table.callerId)],
 );
@@ -107,12 +107,15 @@ export const setupCodes = fmsSchema.table(
     redeemedAt: timestamp('redeemed_at', { withTimezone: true }),
     ...generateTimestamps(),
   },
-  (table) => [index('setup_codes_caller_id_idx').on(table.callerId)],
+  (table) => [
+    index('setup_codes_caller_id_idx').on(table.callerId),
+    index('setup_codes_hash_idx').on(table.codeHash),
+  ],
 );
 
 export const serviceSettings = fmsSchema.table('service_settings', {
   key: text('key').primaryKey(),
   value: jsonb('value').notNull(),
-  updatedBy: uuid('updated_by'),
+  updatedBy: text('updated_by'),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });

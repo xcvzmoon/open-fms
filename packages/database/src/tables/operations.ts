@@ -29,7 +29,7 @@ export const auditEvents = fmsSchema.table(
     actorType: text('actor_type', {
       enum: ['caller', 'admin', 'system', 'worker'],
     }).notNull(),
-    actorId: uuid('actor_id'),
+    actorId: text('actor_id'),
     actorKeyId: text('actor_key_id'),
     action: text('action').notNull(),
     targetType: text('target_type'),

@@ -51,6 +51,7 @@ export const files = fmsSchema.table(
     scannedAt: timestamp('scanned_at', { withTimezone: true }),
     promotedAt: timestamp('promoted_at', { withTimezone: true }),
     purgeAfter: timestamp('purge_after', { withTimezone: true }),
+    purgedAt: timestamp('purged_at', { withTimezone: true }),
   },
   (table) => [
     index('files_caller_status_idx').on(table.callerId, table.status),

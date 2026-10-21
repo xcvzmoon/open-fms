@@ -21,6 +21,7 @@ describe('better auth schema', () => {
     expect(Object.keys(authSchema).toSorted()).toEqual([
       'account',
       'apikey',
+      'rateLimit',
       'session',
       'user',
       'verification',
