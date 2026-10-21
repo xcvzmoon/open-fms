@@ -14,18 +14,22 @@ export default defineTask({
     let failed = 0;
     for (const file of await listPurgeableFiles()) {
       try {
+        // oxlint-disable-next-line no-await-in-loop -- Complete each purge and close its adapter before starting another file.
         const storage = await resolveStorageAdapter(
           file.storageBackendId,
           resolveUploadCredentials(),
         );
         try {
+          // oxlint-disable-next-line no-await-in-loop -- Complete each purge and close its adapter before starting another file.
           const session = await loadUploadSessionByFileId(file.id);
           if (session?.multipartUploadId)
+            // oxlint-disable-next-line no-await-in-loop -- Complete each purge and close its adapter before starting another file.
             await storage.abortMultipartUpload({
               bucket: storage.quarantineBucket,
               key: file.objectKey,
               uploadId: session.multipartUploadId,
             });
+          // oxlint-disable-next-line no-await-in-loop -- Complete each purge and close its adapter before starting another file.
           await purgeFile({
             fileId: file.id,
             expectedStatus: file.status,

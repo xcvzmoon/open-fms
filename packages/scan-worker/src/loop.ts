@@ -9,6 +9,7 @@ export async function runWorkerLoop(
   let failures = 0;
   while (!signal.aborted) {
     try {
+      // oxlint-disable-next-line no-await-in-loop -- Process one job and its backoff before claiming another job.
       const outcome = await processNext();
       failures = outcome.status === 'failed' ? Math.min(failures + 1, 6) : 0;
       if (outcome.status !== 'skipped' && outcome.status !== 'failed') continue;
@@ -16,6 +17,7 @@ export async function runWorkerLoop(
       failures = Math.min(failures + 1, 6);
     }
     try {
+      // oxlint-disable-next-line no-await-in-loop -- Process one job and its backoff before claiming another job.
       await delay(Math.min(60_000, pollIntervalMs * 2 ** failures), undefined, { signal });
     } catch {
       if (!signal.aborted) throw new Error('SCAN_POLL_FAILED');

@@ -36,22 +36,24 @@ export default defineTask({
       };
     }
 
-    const result = await reconcileFileObjects(async (backend): Promise<S3StorageAdapter> => {
-      return createStorageAdapter({
-        config: {
-          id: backend.id,
-          name: backend.name,
-          kind: backend.kind,
-          endpoint: backend.endpoint,
-          region: backend.region,
-          quarantineBucket: backend.quarantineBucket,
-          cleanBucket: backend.cleanBucket,
-          forensicBucket: backend.forensicBucket,
-          credentialRef: backend.credentialRef,
-          forcePathStyle: backend.kind !== 's3',
-        },
-        credentials,
-      });
+    const result = await reconcileFileObjects((backend): Promise<S3StorageAdapter> => {
+      return Promise.resolve(
+        createStorageAdapter({
+          config: {
+            id: backend.id,
+            name: backend.name,
+            kind: backend.kind,
+            endpoint: backend.endpoint,
+            region: backend.region,
+            quarantineBucket: backend.quarantineBucket,
+            cleanBucket: backend.cleanBucket,
+            forensicBucket: backend.forensicBucket,
+            credentialRef: backend.credentialRef,
+            forcePathStyle: backend.kind !== 's3',
+          },
+          credentials,
+        }),
+      );
     }, isObjectNotFound);
 
     return { result };

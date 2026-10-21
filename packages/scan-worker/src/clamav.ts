@@ -57,7 +57,9 @@ export function createClamAvClient(options: {
                 const part = bytes.subarray(offset, offset + 65536);
                 const header = Buffer.alloc(4);
                 header.writeUInt32BE(part.length);
+                // oxlint-disable-next-line no-await-in-loop -- Write each frame header and payload in protocol order with backpressure.
                 await write(header);
+                // oxlint-disable-next-line no-await-in-loop -- Write each frame header and payload in protocol order with backpressure.
                 await write(part);
               }
             }

@@ -39,6 +39,7 @@ type ReconcileRow = {
 async function* loadLiveFilePages(): AsyncGenerator<ReconcileRow[]> {
   let cursor: string | undefined;
   while (true) {
+    // oxlint-disable-next-line no-await-in-loop -- Load the next page only after advancing the keyset cursor.
     const rows = await db
       .select({
         id: files.id,
@@ -64,7 +65,7 @@ async function* loadLiveFilePages(): AsyncGenerator<ReconcileRow[]> {
 }
 
 export async function reconcileObjectPages(
-  pages: AsyncIterable<ReconcileRow[]>,
+  pages: AsyncIterable<ReconcileRow[]> | Iterable<ReconcileRow[]>,
   storageForBackend: (backend: ReconcileBackend) => Promise<ReconcileStorage | null>,
   isNotFound: (error: Error) => boolean,
   concurrency = 4,
@@ -130,6 +131,7 @@ export async function reconcileObjectPages(
         Array.from({ length: workers }, async () => {
           while (next < rows.length) {
             const row = rows[next++];
+            // oxlint-disable-next-line no-await-in-loop -- Await each worker operation to keep HEAD concurrency bounded.
             if (row) await checkRow(row);
           }
         }),
@@ -140,6 +142,7 @@ export async function reconcileObjectPages(
   } finally {
     for (const pending of adapters.values()) {
       try {
+        // oxlint-disable-next-line no-await-in-loop -- Close each cached adapter after its factory settles.
         const adapter = await pending;
         adapter?.destroy();
       } catch {

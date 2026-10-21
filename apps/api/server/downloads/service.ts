@@ -79,7 +79,9 @@ export async function openDownload(
     return {
       file,
       storage,
-      body: closeBody(object.body, () => storage.destroy()),
+      body: closeBody(object.body, () => {
+        storage.destroy();
+      }),
       etag: object.etag,
       contentLength: object.contentLength,
       contentRange: object.contentRange,

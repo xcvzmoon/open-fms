@@ -23,6 +23,7 @@ export default defineTask({
     let failed = 0;
     for (const file of await listStaleUploadFiles()) {
       try {
+        // oxlint-disable-next-line no-await-in-loop -- Finish each locked expiration before admitting the next storage operation.
         await withUploadLock(file.id, file.callerId, async () => {
           const session = await loadUploadSessionByFileId(file.id);
           if (session?.multipartUploadId) {

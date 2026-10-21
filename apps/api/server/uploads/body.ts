@@ -21,6 +21,7 @@ export function hashUploadBody(
     try {
       signal.throwIfAborted();
       while (true) {
+        // oxlint-disable-next-line no-await-in-loop -- Read one chunk at a time to preserve backpressure and enforce the byte limit.
         const next = await reader.read();
         signal.throwIfAborted();
         if (next.done) break;
@@ -61,6 +62,7 @@ export async function readPartBody(
   try {
     signal.throwIfAborted();
     while (true) {
+      // oxlint-disable-next-line no-await-in-loop -- Read one chunk at a time to preserve backpressure and enforce the byte limit.
       const next = await reader.read();
       signal.throwIfAborted();
       if (next.done) break;

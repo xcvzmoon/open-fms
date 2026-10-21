@@ -31,6 +31,7 @@ export async function spoolObject(
     try {
       while (true) {
         signal.throwIfAborted();
+        // oxlint-disable-next-line no-await-in-loop -- Read and persist one chunk at a time to bound memory and preserve byte order.
         const result = await reader.read();
         signal.throwIfAborted();
         if (result.done) break;
@@ -40,6 +41,7 @@ export async function spoolObject(
         const copied = Math.min(prefix.length - prefixLength, result.value.length);
         prefix.set(result.value.subarray(0, copied), prefixLength);
         prefixLength += copied;
+        // oxlint-disable-next-line no-await-in-loop -- Read and persist one chunk at a time to bound memory and preserve byte order.
         await file.writeFile(result.value);
       }
     } finally {

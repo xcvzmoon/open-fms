@@ -12,7 +12,11 @@ beforeAll(async () => {
     else process.env.DB_URL = previousUrl;
   }
 });
-type Row = Parameters<typeof runReconcile>[0] extends AsyncIterable<(infer Item)[]> ? Item : never;
+type Row = Parameters<typeof runReconcile>[0] extends
+  | AsyncIterable<(infer Item)[]>
+  | Iterable<(infer Item)[]>
+  ? Item
+  : never;
 const backend: NonNullable<Row['backend']> = {
   id: 'backend',
   name: 'fixture',
@@ -29,7 +33,7 @@ const backend: NonNullable<Row['backend']> = {
   updatedAt: new Date(0),
   deletedAt: null,
 };
-async function* pages(count: number): AsyncGenerator<Row[]> {
+function* pages(count: number): Generator<Row[]> {
   for (let offset = 0; offset < count; offset += 200) {
     yield Array.from({ length: Math.min(200, count - offset) }, (_, index) => ({
       id: String(offset + index),
@@ -40,6 +44,18 @@ async function* pages(count: number): AsyncGenerator<Row[]> {
   }
 }
 
+function* brokenPages(): Generator<Row[]> {
+  yield [{ id: '1', objectKey: 'one', status: 'clean', backend }];
+  throw new Error('PAGE_FAILED');
+}
+
+function* retained(): Generator<Row[]> {
+  yield [
+    { id: 'infected', objectKey: 'infected', status: 'infected', backend },
+    { id: 'rejected', objectKey: 'rejected', status: 'rejected', backend },
+  ];
+}
+
 test('reuses one adapter, limits concurrency to four and retains only 1000 mismatches across pages', async () => {
   let created = 0;
   let destroyed = 0;
@@ -48,9 +64,9 @@ test('reuses one adapter, limits concurrency to four and retains only 1000 misma
   const missing = new Error('missing');
   const result = await reconcileObjectPages(
     pages(1205),
-    async () => {
+    () => {
       created += 1;
-      return {
+      return Promise.resolve({
         async headObject() {
           active += 1;
           maximum = Math.max(maximum, active);
@@ -61,7 +77,7 @@ test('reuses one adapter, limits concurrency to four and retains only 1000 misma
         destroy() {
           destroyed += 1;
         },
-      };
+      });
     },
     (error) => error === missing,
     100,
@@ -80,15 +96,16 @@ test('reports timeouts and forbidden responses as operational errors, not missin
   let destroyed = 0;
   const result = await reconcileObjectPages(
     pages(3),
-    async () => ({
-      async headObject(location) {
-        if (location.key === '0') return { etag: 'present', contentLength: 10 };
-        throw new Error(location.key === '1' ? 'timeout' : 'forbidden');
-      },
-      destroy() {
-        destroyed += 1;
-      },
-    }),
+    () =>
+      Promise.resolve({
+        headObject(location) {
+          if (location.key === '0') return Promise.resolve({ etag: 'present', contentLength: 10 });
+          return Promise.reject(new Error(location.key === '1' ? 'timeout' : 'forbidden'));
+        },
+        destroy() {
+          destroyed += 1;
+        },
+      }),
     () => false,
   );
   expect(result.checked).toBe(1);
@@ -100,21 +117,19 @@ test('reports timeouts and forbidden responses as operational errors, not missin
 
 test('destroys the cached adapter when pagination fails', async () => {
   let destroyed = 0;
-  async function* brokenPages(): AsyncGenerator<Row[]> {
-    yield [{ id: '1', objectKey: 'one', status: 'clean', backend }];
-    throw new Error('PAGE_FAILED');
-  }
+
   await expect(
     reconcileObjectPages(
       brokenPages(),
-      async () => ({
-        async headObject() {
-          return { etag: 'ok', contentLength: 1 };
-        },
-        destroy() {
-          destroyed += 1;
-        },
-      }),
+      () =>
+        Promise.resolve({
+          headObject() {
+            return Promise.resolve({ etag: 'ok', contentLength: 1 });
+          },
+          destroy() {
+            destroyed += 1;
+          },
+        }),
       () => false,
     ),
   ).rejects.toThrow('PAGE_FAILED');
@@ -125,9 +140,9 @@ test('bounds operational error details and caches failed backend creation', asyn
   let created = 0;
   const result = await reconcileObjectPages(
     pages(1205),
-    async () => {
+    () => {
       created += 1;
-      throw new Error('BACKEND_UNAVAILABLE');
+      return Promise.reject(new Error('BACKEND_UNAVAILABLE'));
     },
     () => false,
   );
@@ -138,12 +153,6 @@ test('bounds operational error details and caches failed backend creation', asyn
 });
 
 test('retained infected and rejected objects remain expected in quarantine', async () => {
-  async function* retained(): AsyncGenerator<Row[]> {
-    yield [
-      { id: 'infected', objectKey: 'infected', status: 'infected', backend },
-      { id: 'rejected', objectKey: 'rejected', status: 'rejected', backend },
-    ];
-  }
   const buckets: string[] = [];
   const result = await reconcileObjectPages(
     retained(),

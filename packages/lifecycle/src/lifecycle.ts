@@ -520,6 +520,7 @@ export async function purgeFile(input: {
       input.quarantineBucket,
       input.forensicBucket,
     ])) {
+      // oxlint-disable-next-line no-await-in-loop -- Keep transaction operations ordered and stop on the first failure.
       if (bucket) await input.storage.deleteObject({ bucket, key: file.objectKey });
     }
     if (file.uploadedAt) {
@@ -560,6 +561,7 @@ export async function retireFailedScans(): Promise<number> {
       .limit(100)
       .for('update', { skipLocked: true });
     for (const file of rows) {
+      // oxlint-disable-next-line no-await-in-loop -- Keep transaction operations ordered and stop on the first failure.
       await tx
         .update(files)
         .set({
