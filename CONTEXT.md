@@ -39,8 +39,8 @@ Every transition matches `status` and `row_version` and updates exactly one row.
 
 ## Auth model
 
-- Better Auth owns sessions, password hashing, API key verification, and rate limiting.
-- `caller_credentials` stores FMS policy: scopes, CIDR lists, size limits, rotation/revocation.
+- Better Auth owns sessions, password hashing, API key permissions, verification, and per-key rate limiting.
+- `caller_credentials` stores FMS policy: CIDR lists, MIME types, size limits, rotation/revocation. Caller-wide rate limits remain in FMS.
 - `loadCallerContext` joins tenant policy for request handlers.
 - Admin users use email/password. Service callers use API keys.
 

@@ -78,7 +78,6 @@ export const callerCredentials = fmsSchema.table(
       .default('standard'),
     keyPrefix: text('key_prefix').notNull(),
     keyId: text('key_id').notNull().unique(),
-    scopes: text('scopes').array().notNull().default([]),
     allowedCidrs: text('allowed_cidrs').array().notNull().default([]),
     allowedTypes: text('allowed_types').array().notNull().default([]),
     maxFileSizeBytes: bigint('max_file_size_bytes', { mode: 'number' }),

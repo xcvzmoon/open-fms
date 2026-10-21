@@ -2,9 +2,7 @@ import type { ChildProcess } from 'node:child_process';
 import { defaultKeyHasher } from '@better-auth/api-key';
 import { spawn } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
-import { once } from 'node:events';
 import { readFile, readdir } from 'node:fs/promises';
-import { createServer } from 'node:net';
 import { setTimeout as delay } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 import postgres from 'postgres';
@@ -12,39 +10,11 @@ import * as v from 'valibot';
 import { expect, test } from 'vite-plus/test';
 import { createStorageAdapter } from '../../../packages/storage/src/index.ts';
 import { ensureTestBuckets } from '../../../packages/storage/tests/ensure-buckets.ts';
+import { ephemeralPort, stopServer } from './http-fixture.ts';
 
 const enabled = process.env.FMS_HTTP_INTEGRATION === '1';
 
 const createdSchema = v.object({ fileId: v.string(), objectKey: v.string() });
-
-async function ephemeralPort(): Promise<number> {
-  const listener = createServer();
-  await new Promise<void>((resolve) => listener.listen(0, '127.0.0.1', resolve));
-  try {
-    const address = listener.address();
-    if (!address || !(address instanceof Object)) throw new Error('HTTP_FIXTURE_ADDRESS_INVALID');
-    return address.port;
-  } finally {
-    await new Promise<void>((resolve, reject) =>
-      listener.close((error) => {
-        if (error) reject(error);
-        else resolve();
-      }),
-    );
-  }
-}
-
-async function stopServer(child: ChildProcess): Promise<void> {
-  if (child.exitCode !== null || child.signalCode !== null) return;
-  const exited = once(child, 'exit');
-  child.kill('SIGTERM');
-  const force = setTimeout(() => child.kill('SIGKILL'), 1000);
-  try {
-    await exited;
-  } finally {
-    clearTimeout(force);
-  }
-}
 
 test.runIf(enabled)(
   'built HTTP boundary isolates tenants, rejects closed uploads, and seals streamed bytes once',
@@ -110,10 +80,10 @@ test.runIf(enabled)(
         await sql`INSERT INTO fms.auth_users (id, name, email, email_verified) VALUES (${userId}, 'HTTP fixture', ${email}, true)`;
         await sql`INSERT INTO fms.callers (id, owner_user_id, name, owner_email, owner_verified_at, created_by)
           VALUES (${id}, ${userId}, ${id}, ${email}, now(), ${userId})`;
-        await sql`INSERT INTO fms.auth_api_keys (id, reference_id, key, rate_limit_enabled, expires_at)
-          VALUES (${keyId}, ${userId}, ${await defaultKeyHasher(key)}, false, now() + interval '1 hour')`;
-        await sql`INSERT INTO fms.caller_credentials (id, caller_id, label, key_prefix, key_id, scopes, expires_at, created_by)
-          VALUES (${randomUUID()}, ${id}, 'HTTP fixture', 'http_fixture_', ${keyId}, ARRAY['uploads:write', 'files:read'], now() + interval '1 hour', ${userId})`;
+        await sql`INSERT INTO fms.auth_api_keys (id, reference_id, key, rate_limit_enabled, permissions, expires_at)
+          VALUES (${keyId}, ${userId}, ${await defaultKeyHasher(key)}, false, ${JSON.stringify({ uploads: ['write'], files: ['read'] })}, now() + interval '1 hour')`;
+        await sql`INSERT INTO fms.caller_credentials (id, caller_id, label, key_prefix, key_id, expires_at, created_by)
+          VALUES (${randomUUID()}, ${id}, 'HTTP fixture', 'http_fixture_', ${keyId}, now() + interval '1 hour', ${userId})`;
         return { id, key };
       }
       const owner = await seedCaller();

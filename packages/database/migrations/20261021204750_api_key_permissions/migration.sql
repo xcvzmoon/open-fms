@@ -1,0 +1,1 @@
+ALTER TABLE "fms"."caller_credentials" DROP COLUMN "scopes";

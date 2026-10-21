@@ -77,10 +77,10 @@ describe('registration tables', () => {
 
   test('callerCredentials binds native keys to policy, revocation fields, and audit actors', () => {
     const columns = getTableColumns(callerCredentials);
+    expect(columns).not.toHaveProperty('scopes');
     expect(Object.keys(columns)).toEqual(
       expect.arrayContaining([
         'keyId',
-        'scopes',
         'allowedCidrs',
         'expiresAt',
         'revokedAt',
