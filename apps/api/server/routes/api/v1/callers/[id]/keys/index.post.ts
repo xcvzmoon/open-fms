@@ -1,13 +1,14 @@
+import { apiKeyPermissionsSchema } from '@open-fms/database';
 import { defineHandler } from 'nitro';
 import { HTTPError, readBody } from 'nitro/h3';
 import * as v from 'valibot';
 import { cidrAllows } from '~/server/auth/policy.ts';
 import { handleIssueCredential } from '~/server/registration/service.ts';
 
-const schema = v.object({
+const schema = v.strictObject({
   label: v.pipe(v.string(), v.minLength(1), v.maxLength(128)),
   kind: v.picklist(['standard', 'restricted']),
-  scopes: v.pipe(v.array(v.picklist(['uploads:write', 'files:read'])), v.minLength(1)),
+  permissions: apiKeyPermissionsSchema,
   allowedCidrs: v.array(v.pipe(v.string(), v.check(validCidr))),
   allowedTypes: v.array(v.pipe(v.string(), v.minLength(1))),
   maxFileSizeBytes: v.nullable(
@@ -29,9 +30,10 @@ export default defineHandler(async (event) => {
   if (!parsed.success) throw new HTTPError('CREDENTIAL_POLICY_INVALID', { status: 400 });
   if (
     parsed.output.kind === 'restricted' &&
-    parsed.output.scopes.includes('uploads:write') &&
+    parsed.output.permissions.uploads?.includes('write') &&
     parsed.output.allowedTypes.length === 0
   )
     throw new HTTPError('CREDENTIAL_TYPES_REQUIRED', { status: 400 });
-  return handleIssueCredential(user.id, callerId, parsed.output);
+  const { permissions, ...policy } = parsed.output;
+  return handleIssueCredential(user.id, callerId, policy, permissions);
 });

@@ -1,13 +1,12 @@
-import type { CallerContext } from '@open-fms/database';
+import type { ApiKeyPermissions, CallerContext } from '@open-fms/database';
 import { BlockList, isIP } from 'node:net';
 
-export type ResourceScope = 'uploads:write' | 'files:read';
-
-export function requiredScope(pathname: string, method: string): ResourceScope | null {
+export function requiredPermissions(pathname: string, method: string): ApiKeyPermissions | null {
   if (pathname === '/api/v1/uploads' || pathname.startsWith('/api/v1/uploads/')) {
-    return method === 'GET' || method === 'HEAD' ? 'files:read' : 'uploads:write';
+    return method === 'GET' || method === 'HEAD' ? { files: ['read'] } : { uploads: ['write'] };
   }
-  if (pathname === '/api/v1/files' || pathname.startsWith('/api/v1/files/')) return 'files:read';
+  if (pathname === '/api/v1/files' || pathname.startsWith('/api/v1/files/'))
+    return { files: ['read'] };
   return null;
 }
 
@@ -39,12 +38,11 @@ export function smallerLimit(caller: number | null, credential: number | null): 
 
 export function applyCredentialPolicy(
   context: CallerContext,
-  scope: ResourceScope | null,
+  permissions: ApiKeyPermissions | null,
   address: string,
 ): boolean {
   const { caller, credential } = context;
   if (!credential) return true;
-  if (scope && !credential.scopes.includes(scope)) return false;
   if (!cidrAllows(address, credential.allowedCidrs)) return false;
   caller.maxFileSizeBytes = Math.min(
     caller.maxFileSizeBytes,
@@ -61,7 +59,7 @@ export function applyCredentialPolicy(
       )
         allowed.push(contentType);
     }
-    if (allowed.length === 0 && scope === 'uploads:write') return false;
+    if (allowed.length === 0 && permissions?.uploads?.includes('write')) return false;
     caller.allowedContentTypes = allowed;
   }
   return true;

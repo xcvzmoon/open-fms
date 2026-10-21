@@ -32,7 +32,6 @@ const caller: CallerContext = {
   credential: {
     keyId: 'key',
     kind: 'restricted',
-    scopes: [],
     allowedCidrs: [],
     allowedTypes: ['text/plain'],
     maxFileSizeBytes: 10,

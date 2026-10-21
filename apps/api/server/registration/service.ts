@@ -1,4 +1,4 @@
-import type { CredentialPolicyInput, SignupSettings } from '@open-fms/database';
+import type { ApiKeyPermissions, CredentialPolicyInput, SignupSettings } from '@open-fms/database';
 import {
   approveCaller,
   createSelfSignupCaller,
@@ -27,6 +27,7 @@ export function toRegistrationFailure(error: Error): RegistrationFailure {
     'SETUP_CODE_INVALID',
     'CALLER_NOT_FOUND',
     'CREDENTIAL_NOT_FOUND',
+    'CREDENTIAL_PERMISSIONS_INVALID',
     'VERIFIED_ACCOUNT_REQUIRED',
   ];
   return { code: known.includes(error.message) ? error.message : 'REGISTRATION_FAILED' };
@@ -74,6 +75,7 @@ export async function handleIssueCredential(
   adminActorId: string,
   callerId: string,
   policy: CredentialPolicyInput,
+  permissions: ApiKeyPermissions,
   oldKeyId?: string,
 ): Promise<{ keyId: string; key: string; expiresAt: Date }> {
   const userId = await loadCredentialOwner(callerId);
@@ -82,6 +84,7 @@ export async function handleIssueCredential(
     body: {
       userId,
       name: policy.label,
+      permissions,
       expiresIn,
       rateLimitEnabled: policy.rateLimitPerSec !== null,
       rateLimitTimeWindow: 1000,
@@ -103,8 +106,8 @@ export async function handleRotateCredential(
   callerId: string,
   keyId: string,
 ): Promise<{ keyId: string; key: string; expiresAt: Date }> {
-  const policy = await loadCredentialPolicy(callerId, keyId);
-  return handleIssueCredential(adminActorId, callerId, policy, keyId);
+  const { policy, permissions } = await loadCredentialPolicy(callerId, keyId);
+  return handleIssueCredential(adminActorId, callerId, policy, permissions, keyId);
 }
 
 export async function handleSignupSettings(): Promise<SignupSettings> {

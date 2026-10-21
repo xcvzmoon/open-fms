@@ -3,7 +3,7 @@ import { defineMiddleware } from 'nitro';
 import { getRequestIP, getRequestURL, HTTPError } from 'nitro/h3';
 import { auth } from '../auth/auth.ts';
 import { resolveAuthEnv } from '../auth/env.ts';
-import { applyCredentialPolicy, isTrustedMutation, requiredScope } from '../auth/policy.ts';
+import { applyCredentialPolicy, isTrustedMutation, requiredPermissions } from '../auth/policy.ts';
 import { isPublicRequest } from '../auth/public-paths.ts';
 
 export default defineMiddleware(async (event) => {
@@ -21,17 +21,14 @@ export default defineMiddleware(async (event) => {
   const signupRoute = pathname === '/api/v1/signup' || pathname.startsWith('/api/v1/signup/');
   if (key) {
     if (adminRoute || signupRoute) throw new HTTPError('ADMIN_SESSION_REQUIRED', { status: 403 });
-    const verified = await auth.api.verifyApiKey({ body: { key } });
+    const permissions = requiredPermissions(pathname, event.req.method);
+    const verified = await auth.api.verifyApiKey({
+      body: { key, permissions: permissions ?? undefined },
+    });
     if (!verified.valid || !verified.key) throw new HTTPError('AUTH_REQUIRED', { status: 401 });
     const caller = await loadCallerContext(verified.key.referenceId, verified.key.id);
     if (!caller?.credential) throw new HTTPError('CALLER_CREDENTIAL_DENIED', { status: 403 });
-    if (
-      !applyCredentialPolicy(
-        caller,
-        requiredScope(pathname, event.req.method),
-        getRequestIP(event) ?? '',
-      )
-    )
+    if (!applyCredentialPolicy(caller, permissions, getRequestIP(event) ?? ''))
       throw new HTTPError('CREDENTIAL_POLICY_DENIED', { status: 403 });
     if (!(await consumeCallerRateLimit(caller.caller.id, caller.caller.rateLimitPerSec)))
       throw new HTTPError('CALLER_RATE_LIMIT', { status: 429 });

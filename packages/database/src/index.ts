@@ -1,3 +1,5 @@
+export { apiKeyPermissionsSchema } from './auth/permissions.ts';
+export type { ApiKeyPermissions } from './auth/permissions.ts';
 export {
   authAccounts,
   authRateLimits,

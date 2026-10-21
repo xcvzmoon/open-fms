@@ -18,7 +18,6 @@ export type CallerRecord = {
 export type CallerCredentialPolicy = {
   keyId: string;
   kind: 'standard' | 'restricted';
-  scopes: string[];
   allowedCidrs: string[];
   allowedTypes: string[];
   maxFileSizeBytes: number | null;
@@ -31,8 +30,8 @@ export type CallerContext = {
 };
 
 /**
- * Loads FMS tenant policy. Key material stays in Better Auth; scopes, CIDR,
- * and size limits stay in `caller_credentials`.
+ * Loads FMS tenant policy. Better Auth owns keys and permissions;
+ * CIDR and size limits stay in `caller_credentials`.
  */
 export async function loadCallerContext(
   ownerUserId: string,
@@ -99,7 +98,6 @@ export async function loadCallerContext(
     credential: {
       keyId: credentialRow.keyId,
       kind: credentialRow.kind,
-      scopes: credentialRow.scopes,
       allowedCidrs: credentialRow.allowedCidrs,
       allowedTypes: credentialRow.allowedTypes,
       maxFileSizeBytes: credentialRow.maxFileSizeBytes,

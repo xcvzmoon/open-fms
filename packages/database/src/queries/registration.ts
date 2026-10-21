@@ -1,5 +1,7 @@
+import type { ApiKeyPermissions } from '../auth/permissions.ts';
 import { and, eq, gt, inArray, isNull, lt } from 'drizzle-orm';
 import * as v from 'valibot';
+import { storedApiKeyPermissionsSchema } from '../auth/permissions.ts';
 import { authApiKeys, authUsers } from '../auth/schema.ts';
 import { db } from '../client.ts';
 import { isEmailDomainAllowed } from '../security/email.ts';
@@ -326,7 +328,6 @@ export async function revokeCallerCredential(input: {
 export type CredentialPolicyInput = {
   label: string;
   kind: 'standard' | 'restricted';
-  scopes: string[];
   allowedCidrs: string[];
   allowedTypes: string[];
   maxFileSizeBytes: number | null;
@@ -491,10 +492,18 @@ export async function loadCredentialOwner(callerId: string): Promise<string> {
 export async function loadCredentialPolicy(
   callerId: string,
   keyId: string,
-): Promise<CredentialPolicyInput> {
-  const [credential] = await db
-    .select()
+): Promise<{ policy: CredentialPolicyInput; permissions: ApiKeyPermissions }> {
+  const [record] = await db
+    .select({ credential: callerCredentials, permissions: authApiKeys.permissions })
     .from(callerCredentials)
+    .innerJoin(callers, eq(callers.id, callerCredentials.callerId))
+    .innerJoin(
+      authApiKeys,
+      and(
+        eq(authApiKeys.id, callerCredentials.keyId),
+        eq(authApiKeys.referenceId, callers.ownerUserId),
+      ),
+    )
     .where(
       and(
         eq(callerCredentials.callerId, callerId),
@@ -502,17 +511,24 @@ export async function loadCredentialPolicy(
         isNull(callerCredentials.revokedAt),
         isNull(callerCredentials.deletedAt),
         gt(callerCredentials.expiresAt, new Date()),
+        eq(authApiKeys.enabled, true),
+        gt(authApiKeys.expiresAt, new Date()),
       ),
     );
-  if (!credential) throw new Error('CREDENTIAL_NOT_FOUND');
+  if (!record) throw new Error('CREDENTIAL_NOT_FOUND');
+  const parsed = v.safeParse(storedApiKeyPermissionsSchema, record.permissions);
+  if (!parsed.success) throw new Error('CREDENTIAL_PERMISSIONS_INVALID');
+  const { credential } = record;
   return {
-    label: credential.label,
-    kind: credential.kind,
-    scopes: credential.scopes,
-    allowedCidrs: credential.allowedCidrs,
-    allowedTypes: credential.allowedTypes,
-    maxFileSizeBytes: credential.maxFileSizeBytes,
-    rateLimitPerSec: credential.rateLimitPerSec,
+    permissions: parsed.output,
+    policy: {
+      label: credential.label,
+      kind: credential.kind,
+      allowedCidrs: credential.allowedCidrs,
+      allowedTypes: credential.allowedTypes,
+      maxFileSizeBytes: credential.maxFileSizeBytes,
+      rateLimitPerSec: credential.rateLimitPerSec,
+    },
   };
 }
 
