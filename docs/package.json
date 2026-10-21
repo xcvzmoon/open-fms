@@ -3,11 +3,17 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "undocs dev",
-    "build": "undocs build",
+    "dev": "node cli.mts dev",
+    "build": "node cli.mts build",
     "preview": "undocs preview"
   },
   "devDependencies": {
+    "@iconify-json/heroicons": "^1.2.3",
+    "@iconify-json/lucide": "^1.2.147",
+    "@iconify-json/ph": "^1.2.2",
+    "@iconify-json/simple-icons": "^1.2.100",
+    "@iconify-json/vscode-icons": "^1.2.92",
+    "@types/node": "^26.6.5",
     "undocs": "^0.4.17"
   }
 }

@@ -27,11 +27,12 @@ landing:
     title: 'upload-and-download.sh'
     lang: 'bash'
     content: |
-      # Create an upload session
-      curl -X POST https://fms.example/api/v1/uploads \
+      # Create a session for report.pdf
+      SIZE=$(wc -c < report.pdf | tr -d ' ')
+      FILE_ID=$(curl --fail -sS https://fms.example/api/v1/uploads \
         -H "Authorization: Bearer $FMS_API_KEY" \
         -H "Content-Type: application/json" \
-        -d '{"storageBackendId":"...","originalFilename":"report.pdf"}'
+        -d "{\"storageBackendId\":\"$BACKEND_ID\",\"originalFilename\":\"report.pdf\",\"declaredSizeBytes\":$SIZE,\"mode\":\"proxy_single\"}" | jq -er '.fileId')
 
       # Stream bytes (SHA-256 computed in flight)
       curl -X PUT https://fms.example/api/v1/uploads/$FILE_ID/content \
