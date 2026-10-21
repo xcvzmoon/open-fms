@@ -69,7 +69,7 @@ Set at least:
 
 From `apps/api`, pipe a password from a secure source into `vp run auth:bootstrap-admin create <email> <name>`. Open the verification email, then run `vp run auth:bootstrap-admin promote <user-id>`. Promotion requires a verified account. Public signup stays denied until an administrator configures allowed domains.
 
-Caller signup requires a verified session, an emailed setup code, and administrator approval when configured. Service keys are issued and rotated by a signed-in administrator; the plaintext key is returned once. Key policy enforces scopes, source CIDRs, MIME types, size, expiry, and rate limits. Suspended or disabled callers lose access to existing resources.
+Caller signup requires a verified session, an emailed setup code, and administrator approval when configured. Service keys are issued and rotated by a signed-in administrator; the plaintext key is returned once. Better Auth stores and enforces key permissions. FMS enforces source CIDRs, MIME types, size, expiry, and caller rate limits. Suspended or disabled callers lose access to existing resources. See the [permission contract and cutover requirements](docs/1.docs/5.security.md#api-key-permissions) before upgrading existing credentials.
 
 Production requires `MAIL_MODE=smtp`, `MAIL_FROM`, `SMTP_HOST`, and `SMTP_PORT`. SMTP requires TLS and valid certificates.
 
