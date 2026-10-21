@@ -10,7 +10,7 @@ Other services upload and download over HTTP. They never need an S3 SDK, bucket 
 
 ## What it does
 
-- Uploads files through the API (proxy single, resumable parts, or direct presigned PUT)
+- Uploads files through the API (streamed single uploads or resumable parts)
 - Quarantines every upload until malware scanning finishes
 - Promotes only clean objects into the clean bucket
 - Serves downloads only for files whose database status is `clean`
@@ -44,7 +44,8 @@ Clients ──HTTPS──► Nitro API (apps/api)
 - Node.js 26 (via `devEngines`)
 - pnpm 12.5.1 (managed by Vite+)
 - PostgreSQL 16
-- Optional: MinIO/RustFS/S3, ClamAV, SMTP
+- S3-compatible storage and ClamAV for file processing
+- SMTP with verified TLS for production mail
 
 ## Setup
 
@@ -55,14 +56,22 @@ vp install
 
 Set at least:
 
-| Variable                                              | Purpose                                       |
-| ----------------------------------------------------- | --------------------------------------------- |
-| `DB_URL`                                              | PostgreSQL connection string                  |
-| `BETTER_AUTH_SECRET`                                  | 32+ char secret for Better Auth               |
-| `BETTER_AUTH_URL`                                     | Public API base URL                           |
-| `AUTH_TOKEN_PEPPER`                                   | HMAC pepper for setup codes and upload passes |
-| `STORAGE_ACCESS_KEY_ID` / `STORAGE_SECRET_ACCESS_KEY` | S3 credentials (when storage is used)         |
-| `MAIL_MODE`, `MAIL_FROM`                              | `mock` or `smtp` mail transport               |
+| Variable                                              | Purpose                               |
+| ----------------------------------------------------- | ------------------------------------- |
+| `DB_URL`                                              | PostgreSQL connection string          |
+| `BETTER_AUTH_SECRET`                                  | 32+ char secret for Better Auth       |
+| `BETTER_AUTH_URL`                                     | Public API base URL                   |
+| `AUTH_TOKEN_PEPPER`                                   | HMAC pepper for emailed setup codes   |
+| `STORAGE_ACCESS_KEY_ID` / `STORAGE_SECRET_ACCESS_KEY` | S3 credentials (when storage is used) |
+| `MAIL_MODE`, `MAIL_FROM`                              | `mock` or `smtp` mail transport       |
+
+## First administrator
+
+From `apps/api`, pipe a password from a secure source into `vp run auth:bootstrap-admin create <email> <name>`. Open the verification email, then run `vp run auth:bootstrap-admin promote <user-id>`. Promotion requires a verified account. Public signup stays denied until an administrator configures allowed domains.
+
+Caller signup requires a verified session, an emailed setup code, and administrator approval when configured. Service keys are issued and rotated by a signed-in administrator; the plaintext key is returned once. Key policy enforces scopes, source CIDRs, MIME types, size, expiry, and rate limits. Suspended or disabled callers lose access to existing resources.
+
+Production requires `MAIL_MODE=smtp`, `MAIL_FROM`, `SMTP_HOST`, and `SMTP_PORT`. SMTP requires TLS and valid certificates.
 
 ## Commands
 
@@ -99,27 +108,29 @@ OpenAPI docs: `/_openapi.json` and Scalar UI `/_scalar` in development.
 
 1. Client uploads to quarantine (`incoming/` or sealed prefix)
 2. Scan worker claims a job (`FOR UPDATE SKIP LOCKED`)
-3. Worker verifies SHA-256, sniffs type, checks archives, optionally runs ClamAV
+3. Worker verifies SHA-256, sniffs type, checks archives, runs required ClamAV
 4. Lifecycle promotes a clean object and marks the file `clean`
 5. Download API streams only those files
 
 ## Testing
 
 ```bash
-DB_URL=postgres://user:pass@localhost:5432/open-fms vp run test
+FMS_LIFECYCLE_INTEGRATION=1 DB_URL=postgres://fixture:fixture-local-only@127.0.0.1:<fixture-port>/open-fms vp run test
 ```
 
-Lifecycle integration tests cover the state machine with a controllable storage double. Without `DB_URL` they are skipped.
+Lifecycle integration tests cover the state machine with a controllable storage double. They require `FMS_LIFECYCLE_INTEGRATION=1` and a loopback fixture database named `open-fms` or `audit_test`.
 
 Storage integration tests talk to a real S3-compatible backend. They cover the adapter and the resumable multipart path (`proxy_parts`). Start one, then set the test env vars:
 
 ```bash
-docker compose -f compose.storage.yml up -d --wait
+docker compose -f compose.storage.yaml up -d --wait
 STORAGE_TEST_ENDPOINT=http://127.0.0.1:9000 \
 STORAGE_TEST_ACCESS_KEY_ID=rustfsadmin \
 STORAGE_TEST_SECRET_ACCESS_KEY=rustfsadmin \
   vp run test
 ```
+
+Use `compose.test.yaml` with a fresh project for disposable database and storage fixtures. Integration flags `FMS_LIFECYCLE_INTEGRATION`, `FMS_AUTH_INTEGRATION`, `FMS_AUTH_BOUNDARY_INTEGRATION`, `FMS_HTTP_INTEGRATION`, and `FMS_SCAN_INTEGRATION` enable the complete boundary suites; use only loopback test services. Set `SCAN_TEST_ADMIN_URL` for the queue recovery fixture.
 
 Without `STORAGE_TEST_ENDPOINT` the storage suite is skipped. The suites create the quarantine/clean/forensic buckets on first run. Point the same variables at RustFS, MinIO, or AWS S3 to validate a real backend. Resumable parts use S3 multipart under the hood: non-final parts must be at least 5 MiB (session default part size is 16 MiB).
 
