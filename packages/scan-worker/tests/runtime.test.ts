@@ -13,12 +13,12 @@ test('poll cancellation interrupts idle wait', async () => {
   const controller = new AbortController();
   let calls = 0;
   const running = runWorkerLoop(
-    async () => {
+    () => {
       calls += 1;
       setTimeout(() => {
         controller.abort();
       }, 5);
-      return { status: 'skipped', reason: null };
+      return Promise.resolve({ status: 'skipped' as const, reason: null });
     },
     controller.signal,
     60000,

@@ -330,7 +330,9 @@ test.skipIf(process.env.FMS_SCAN_INTEGRATION !== '1').each(['clean', 'infected']
       while (Date.now() < deadline) {
         if (child.exitCode !== null || child.signalCode !== null)
           throw new Error('SCAN_CLI_PREMATURE_EXIT');
+        // oxlint-disable-next-line no-await-in-loop -- Observe each job state before waiting for the next poll.
         const file = await database.loadFileById(fileId);
+        // oxlint-disable-next-line no-await-in-loop -- Observe each job state before waiting for the next poll.
         const [job] = await database.db
           .select()
           .from(database.scanJobs)
@@ -343,6 +345,7 @@ test.skipIf(process.env.FMS_SCAN_INTEGRATION !== '1').each(['clean', 'infected']
           completed = true;
           break;
         }
+        // oxlint-disable-next-line no-await-in-loop -- Observe each job state before waiting for the next poll.
         await delay(50);
       }
       if (!completed) {

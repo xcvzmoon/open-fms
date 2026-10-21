@@ -135,7 +135,7 @@ describe('streamed completion hashing', () => {
   test('stops reading at the declaration and closes the source', async () => {
     let closed = false;
     let reads = 0;
-    async function* objectBytes(): AsyncGenerator<Uint8Array> {
+    function* objectBytes(): Generator<Uint8Array> {
       try {
         for (let index = 0; index < 100; index += 1) {
           reads += 1;

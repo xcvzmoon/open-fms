@@ -11,8 +11,8 @@ function bytes(...chunks: number[][]): ReadableStream<Uint8Array> {
   });
 }
 async function drain(body: Readable): Promise<void> {
-  for await (const _chunk of body) {
-    /* Drain the fixture as storage would. */
+  for await (const chunk of body) {
+    void chunk;
   }
 }
 
@@ -25,12 +25,10 @@ describe('bounded upload bodies', () => {
       '039058c6f2c0cb492c533b0a4d14ef77cc0f78abccced5287d84a1a2011cfb81',
     );
   });
-  test('rejects overflow and truncation before a valid result exists', async () => {
-    for (const expected of [2, 4]) {
-      const upload = hashUploadBody(bytes([1, 2, 3]), expected, new AbortController().signal);
-      await expect(drain(upload.body)).rejects.toThrow('UPLOAD_SIZE_MISMATCH');
-      expect(() => upload.result()).toThrow('UPLOAD_BODY_INCOMPLETE');
-    }
+  test.each([2, 4])('rejects a body that differs from %s declared bytes', async (expected) => {
+    const upload = hashUploadBody(bytes([1, 2, 3]), expected, new AbortController().signal);
+    await expect(drain(upload.body)).rejects.toThrow('UPLOAD_SIZE_MISMATCH');
+    expect(() => upload.result()).toThrow('UPLOAD_BODY_INCOMPLETE');
   });
   test('caps multipart bytes', async () => {
     await expect(readPartBody(bytes([1, 2], [3]), 2, new AbortController().signal)).rejects.toThrow(

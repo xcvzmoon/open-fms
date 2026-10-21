@@ -62,7 +62,10 @@ beforeAll(async () => {
 afterAll(async () => {
   adapter.destroy();
   await new Promise<void>((resolve, reject) =>
-    server.close((error) => (error ? reject(error) : resolve())),
+    server.close((error) => {
+      if (error) reject(error);
+      else resolve();
+    }),
   );
 });
 
@@ -111,15 +114,13 @@ test('honors an already aborted GET and upload', async () => {
     }),
   ).rejects.toThrow();
 });
-test('only classifies SDK 404 responses as missing objects', async () => {
-  for (const key of ['missing', 'forbidden']) {
-    try {
-      await adapter.headObject({ bucket: 'clean', key });
-      throw new Error('expected fixture rejection');
-    } catch (error) {
-      expect(error).toBeInstanceOf(Error);
-      if (error instanceof Error) expect(isObjectNotFound(error)).toBe(key === 'missing');
-    }
+test.each(['missing', 'forbidden'])('classifies the SDK response for %s', async (key) => {
+  try {
+    await adapter.headObject({ bucket: 'clean', key });
+    throw new Error('expected fixture rejection');
+  } catch (error) {
+    expect(error).toBeInstanceOf(Error);
+    if (error instanceof Error) expect(isObjectNotFound(error)).toBe(key === 'missing');
   }
   expect(isObjectNotFound(new Error('NotFound'))).toBe(false);
 });

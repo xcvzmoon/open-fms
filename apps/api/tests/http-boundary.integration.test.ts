@@ -91,7 +91,9 @@ test.runIf(enabled)(
       directories.sort((left, right) => left.name.localeCompare(right.name));
       for (const directory of directories) {
         if (directory.isDirectory()) {
+          // oxlint-disable-next-line no-await-in-loop -- Apply each migration before the next schema change.
           await sql.unsafe(
+            // oxlint-disable-next-line no-await-in-loop -- Apply each migration before the next schema change.
             await readFile(new URL(`${directory.name}/migration.sql`, migrations), 'utf8'),
           );
         }
@@ -150,12 +152,14 @@ test.runIf(enabled)(
       const deadline = Date.now() + 8000;
       while (true) {
         try {
+          // oxlint-disable-next-line no-await-in-loop -- Wait for server readiness before retrying the probe.
           if ((await fetch(`${origin}/healthz`, { signal: AbortSignal.timeout(500) })).ok) break;
         } catch {
           /* The child has not bound its listener yet. */
         }
         if (Date.now() >= deadline || child.exitCode !== null)
           throw new Error(`HTTP_FIXTURE_START_FAILED: ${logs}`);
+        // oxlint-disable-next-line no-await-in-loop -- Wait for server readiness before retrying the probe.
         await delay(50);
       }
       function request(
@@ -198,13 +202,15 @@ test.runIf(enabled)(
       ).toBe(401);
       expect((await request('admin/settings/signup')).status).toBe(403);
       const single = await createUpload('proxy_single');
-      for (const path of [
-        `files/${single.fileId}`,
-        `files/${single.fileId}/content`,
-        `uploads/${single.fileId}`,
-      ]) {
-        expect((await request(path, other.key)).status).toBe(404);
-      }
+      await Promise.all(
+        [
+          `files/${single.fileId}`,
+          `files/${single.fileId}/content`,
+          `uploads/${single.fileId}`,
+        ].map(async (path) => {
+          expect((await request(path, other.key)).status).toBe(404);
+        }),
+      );
       expect(
         (await request(`uploads/${single.fileId}/content`, other.key, 'PUT', 'bad')).status,
       ).toBe(404);
@@ -274,13 +280,15 @@ test.runIf(enabled)(
         (await request(`uploads/${multipart.fileId}/complete`, owner.key, 'POST')).status,
       ).toBe(409);
       await sql`UPDATE fms.callers SET status = 'suspended' WHERE id = ${owner.id}`;
-      for (const path of [
-        `files/${single.fileId}`,
-        `files/${single.fileId}/content`,
-        `uploads/${multipart.fileId}`,
-      ]) {
-        expect((await request(path)).status).toBe(403);
-      }
+      await Promise.all(
+        [
+          `files/${single.fileId}`,
+          `files/${single.fileId}/content`,
+          `uploads/${multipart.fileId}`,
+        ].map(async (path) => {
+          expect((await request(path)).status).toBe(403);
+        }),
+      );
       expect(
         (await request(`uploads/${multipart.fileId}/parts/1`, owner.key, 'PUT', 'abc')).status,
       ).toBe(403);
@@ -291,8 +299,9 @@ test.runIf(enabled)(
     } finally {
       if (child) await stopServer(child);
       try {
-        for (const key of keys)
-          await storage.deleteObject({ bucket: config.quarantineBucket, key });
+        await Promise.all(
+          keys.map((key) => storage.deleteObject({ bucket: config.quarantineBucket, key })),
+        );
       } finally {
         storage.destroy();
         await sql.end({ timeout: 1 });

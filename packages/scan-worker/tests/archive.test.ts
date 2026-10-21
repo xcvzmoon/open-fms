@@ -68,16 +68,20 @@ test('fails closed on truncated metadata and deflate output inconsistent with de
 test('rejects nested archives by decoded filename or decompressed content signature', async () => {
   expect((await checkArchiveBomb(zip([{ ...file(8), name: 'nested.zip' }]))).ok).toBe(false);
   const nested = zip([file(0)]);
-  for (const method of [0, 8] as const) {
-    expect(
-      (await checkArchiveBomb(zip([{ name: 'ordinary.bin', bytes: nested, method }]))).ok,
-    ).toBe(false);
-  }
+  await Promise.all(
+    ([0, 8] as const).map(async (method) => {
+      expect(
+        (await checkArchiveBomb(zip([{ name: 'ordinary.bin', bytes: nested, method }]))).ok,
+      ).toBe(false);
+    }),
+  );
 });
 test('rejects unsafe names, excessive depth, encryption, and unsupported compression', async () => {
-  for (const name of ['../escape', 'folder\\file', '/absolute', `${'folder/'.repeat(17)}file`]) {
-    expect((await checkArchiveBomb(zip([{ ...file(0), name }]))).ok).toBe(false);
-  }
+  await Promise.all(
+    ['../escape', 'folder\\file', '/absolute', `${'folder/'.repeat(17)}file`].map(async (name) => {
+      expect((await checkArchiveBomb(zip([{ ...file(0), name }]))).ok).toBe(false);
+    }),
+  );
   const encrypted = zip([file(0)]);
   const central = encrypted.readUInt32LE(encrypted.length - 6);
   encrypted.writeUInt16LE(1, central + 8);
