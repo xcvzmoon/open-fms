@@ -197,7 +197,7 @@ export default defineConfig({
     ignorePatterns: ['**/*.d.ts', '.agents/**', 'tools/oxlint/anti-slop/**'],
   },
   test: {
-    isolate: false,
+    isolate: true,
     clearMocks: false,
     passWithNoTests: true,
   },

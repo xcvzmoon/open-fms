@@ -13,3 +13,6 @@ export type {
   StorageCredentials,
   UploadPartResult,
 } from './types.ts';
+
+export { isInvalidObjectRange, isObjectNotFound } from './adapter.ts';
+export { closeBody } from './stream.ts';

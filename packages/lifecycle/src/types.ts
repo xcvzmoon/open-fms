@@ -4,6 +4,7 @@ export type LifecycleStorage = {
     sourceKey: string;
     destinationBucket: string;
     destinationKey: string;
+    sourceEtag?: string;
   }): Promise<{ etag: string }>;
   headObject(location: {
     bucket: string;
@@ -26,7 +27,14 @@ export type LifecycleErrorCode =
   | 'QUOTA_EXCEEDED'
   | 'STORAGE_SEAL_MISMATCH'
   | 'STORAGE_PROMOTE_MISMATCH'
-  | 'LIFECYCLE_FAILED';
+  | 'LIFECYCLE_FAILED'
+  | 'UPLOAD_SIZE_MISMATCH'
+  | 'UPLOAD_SESSION_INVALID'
+  | 'UPLOAD_BUSY'
+  | 'UPLOAD_TYPE_NOT_ALLOWED'
+  | 'UPLOAD_LIMIT_INVALID'
+  | 'CALLER_NOT_ACTIVE'
+  | 'SCAN_LEASE_LOST';
 
 export type LifecycleFailure = {
   code: LifecycleErrorCode;

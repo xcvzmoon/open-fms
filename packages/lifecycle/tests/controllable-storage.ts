@@ -22,6 +22,7 @@ export type ControllableStorage = LifecycleStorage & {
   deletes: DeleteRecord[];
   failNextCopy: Error | null;
   failNextHead: Error | null;
+  failNextDelete: Error | null;
   seedObject(location: { bucket: string; key: string }, object: StoredObject): void;
   objects: Map<string, StoredObject>;
 };
@@ -38,6 +39,7 @@ export function createControllableStorage(): ControllableStorage {
   let failNextHead: Error | null = null;
 
   const storage: ControllableStorage = {
+    failNextDelete: null,
     copies,
     deletes,
     objects,
@@ -64,6 +66,8 @@ export function createControllableStorage(): ControllableStorage {
         return Promise.reject(error);
       }
       const source = objects.get(objectKey({ bucket: input.sourceBucket, key: input.sourceKey }));
+      if (input.sourceEtag && source?.etag !== input.sourceEtag)
+        return Promise.reject(new Error('STORAGE_PROMOTE_MISMATCH'));
       const etag = source?.etag ?? 'copied-etag';
       objects.set(objectKey({ bucket: input.destinationBucket, key: input.destinationKey }), {
         etag,
@@ -90,6 +94,11 @@ export function createControllableStorage(): ControllableStorage {
     },
     deleteObject(location) {
       deletes.push(location);
+      if (storage.failNextDelete) {
+        const error = storage.failNextDelete;
+        storage.failNextDelete = null;
+        return Promise.reject(error);
+      }
       objects.delete(objectKey(location));
       return Promise.resolve();
     },

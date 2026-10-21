@@ -1,64 +1,50 @@
 import { defineHandler } from 'nitro';
-import { HTTPError, readBody } from 'nitro/h3';
-import * as v from 'valibot';
+import { HTTPError } from 'nitro/h3';
 import { resolveUploadCredentials } from '~/server/uploads/credentials.ts';
+import { uploadFailure } from '~/server/uploads/errors.ts';
+import { withUploadLock } from '~/server/uploads/lock.ts';
 import {
-  abortFile,
-  abortResumableUpload,
   loadOwnedFile,
   loadOwnedUploadSession,
   resolveStorageAdapter,
+  abortFile,
+  abortResumableUpload,
 } from '~/server/uploads/service.ts';
-
-const schema = v.object({
-  reason: v.optional(v.pipe(v.string(), v.maxLength(256)), 'client_abort'),
-});
 
 export default defineHandler(async (event) => {
   const caller = event.context.caller;
   const fileId = event.context.params?.id;
-  if (!caller) {
-    throw new HTTPError('AUTH_REQUIRED', { status: 401 });
-  }
-  if (!fileId) {
-    throw new HTTPError('ROUTE_PARAM_MISSING', { status: 400 });
-  }
-
-  const parsed = v.safeParse(schema, await readBody(event));
-  const reason = parsed.success ? parsed.output.reason : 'client_abort';
-  const file = await loadOwnedFile(fileId, caller.caller.id);
-  const session = await loadOwnedUploadSession(fileId);
-  if (file.status !== 'initiated' && file.status !== 'uploading') {
-    throw new HTTPError('FILE_TRANSITION_INVALID', { status: 409 });
-  }
-
+  if (!caller) throw new HTTPError('AUTH_REQUIRED', { status: 401 });
+  if (!fileId) throw new HTTPError('ROUTE_PARAM_MISSING', { status: 400 });
+  const signal = AbortSignal.any([event.req.signal, AbortSignal.timeout(120_000)]);
   try {
-    if (session.multipartUploadId) {
-      const storage = await resolveStorageAdapter(
-        file.storageBackendId,
-        resolveUploadCredentials(),
-      );
+    return await withUploadLock(fileId, caller.caller.id, async () => {
+      const file = await loadOwnedFile(fileId, caller.caller.id);
+      const session = await loadOwnedUploadSession(fileId);
+      if (file.status !== 'initiated' && file.status !== 'uploading')
+        throw new Error('FILE_TRANSITION_INVALID');
+      const storage = session.multipartUploadId
+        ? await resolveStorageAdapter(file.storageBackendId, resolveUploadCredentials())
+        : null;
       try {
         await abortResumableUpload({
           session,
           storage,
           objectKey: file.objectKey,
-          reason: reason ?? 'client_abort',
+          signal,
         });
+        await abortFile({
+          fileId,
+          expectedStatus: file.status,
+          expectedRowVersion: file.rowVersion,
+          reason: 'client_abort',
+        });
+        return { fileId, status: 'failed', reason: 'client_abort' };
       } finally {
-        storage.destroy();
+        storage?.destroy();
       }
-    }
-    await abortFile({
-      fileId: file.id,
-      expectedStatus: file.status,
-      expectedRowVersion: file.rowVersion,
-      reason: reason ?? 'client_abort',
-      reservedBytes: file.sizeBytes ?? 0,
     });
-    return { fileId: file.id, status: 'failed', reason: reason ?? 'client_abort' };
   } catch (error) {
-    const code = error instanceof Error ? error.message : 'UPLOAD_ABORT_FAILED';
-    throw new HTTPError(code, { status: 409 });
+    throw uploadFailure(error instanceof Error ? error : new Error('UPLOAD_FAILED'));
   }
 });
