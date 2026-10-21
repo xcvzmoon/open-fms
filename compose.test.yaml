@@ -1,0 +1,25 @@
+# Use a fresh project: docker compose --env-file /dev/null -p "fms-test-$(uuidgen | tr '[:upper:]' '[:lower:]')" -f compose.test.yaml up -d --wait
+# Discover ports with `docker compose ... port postgres 5432` and `... port storage 9000`.
+# Export DB_URL and STORAGE_TEST_* explicitly, migrate, then run tests. Tear down with `... down -v`.
+services:
+  postgres:
+    image: postgres:16.13-alpine
+    environment:
+      POSTGRES_USER: fixture
+      POSTGRES_PASSWORD: fixture-local-only
+      POSTGRES_DB: open-fms
+    ports:
+      - '127.0.0.1::5432'
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U fixture -d open-fms']
+      interval: 2s
+      timeout: 5s
+      retries: 30
+  storage:
+    extends:
+      file: compose.storage.yaml
+      service: storage
+    ports: !override
+      - '127.0.0.1::9000'
