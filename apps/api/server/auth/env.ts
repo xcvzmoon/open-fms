@@ -55,12 +55,20 @@ export function resolveAuthEnv(source: Record<string, string | undefined> = proc
     secretSchema,
     source.AUTH_TOKEN_PEPPER ?? source.BETTER_AUTH_SECRET,
   );
-  const pepperVersion = source.AUTH_TOKEN_PEPPER_VERSION
-    ? Number.parseInt(source.AUTH_TOKEN_PEPPER_VERSION, 10)
-    : 1;
-  if (!Number.isInteger(pepperVersion) || pepperVersion < 1) {
+  const parsedVersion = v.safeParse(
+    v.pipe(
+      v.string(),
+      v.regex(/^\d+$/),
+      v.transform(Number),
+      v.integer(),
+      v.minValue(1),
+      v.maxValue(32767),
+    ),
+    source.AUTH_TOKEN_PEPPER_VERSION ?? '1',
+  );
+  if (!parsedVersion.success)
     throw new Error('AUTH_ENV_INVALID: AUTH_TOKEN_PEPPER_VERSION_INVALID');
-  }
+  const pepperVersion = parsedVersion.output;
   const isProduction = source.NODE_ENV === 'production';
 
   const trustedOrigins = [baseURL];

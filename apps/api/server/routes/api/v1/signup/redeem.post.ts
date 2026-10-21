@@ -16,7 +16,7 @@ defineRouteMeta({
 });
 
 const schema = v.object({
-  code: v.pipe(v.string(), v.minLength(32)),
+  code: v.pipe(v.string(), v.minLength(32), v.maxLength(128)),
 });
 
 export default defineHandler(async (event) => {
@@ -25,7 +25,9 @@ export default defineHandler(async (event) => {
     throw new HTTPError('SETUP_CODE_INPUT_INVALID', { status: 400 });
   }
   try {
-    return await handleRedeemSetupCode(parsed.output);
+    const user = event.context.user;
+    if (!user) throw new HTTPError('AUTH_REQUIRED', { status: 401 });
+    return await handleRedeemSetupCode(parsed.output.code, user.id);
   } catch (error) {
     const failure =
       error instanceof Error ? toRegistrationFailure(error) : { code: 'REGISTRATION_FAILED' };

@@ -18,7 +18,6 @@ defineRouteMeta({
 
 const schema = v.object({
   name: v.pipe(v.string(), v.minLength(2), v.maxLength(64)),
-  ownerEmail: v.pipe(v.string(), v.email()),
 });
 
 export default defineHandler(async (event) => {
@@ -27,7 +26,9 @@ export default defineHandler(async (event) => {
     throw new HTTPError('SIGNUP_INPUT_INVALID', { status: 400 });
   }
   try {
-    return await handleSelfSignup(parsed.output);
+    const user = event.context.user;
+    if (!user) throw new HTTPError('AUTH_REQUIRED', { status: 401 });
+    return await handleSelfSignup(parsed.output.name, user.id, user.email);
   } catch (error) {
     const failure =
       error instanceof Error ? toRegistrationFailure(error) : { code: 'REGISTRATION_FAILED' };
