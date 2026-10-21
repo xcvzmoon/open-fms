@@ -5,6 +5,7 @@ import {
   formatMailEventIssues,
   mailEventSchema,
   renderMailEvent,
+  resolveSmtpOptions,
   type MailEvent,
 } from '../src/index.ts';
 
@@ -78,5 +79,22 @@ describe('createMailDispatch', () => {
     await expect(
       dispatch.notify({ type: 'auth.setup-code', email: 'c@example.com', code: 'abcdefgh' }),
     ).resolves.toBeUndefined();
+  });
+});
+
+describe('SMTP transport policy', () => {
+  test.each([465, 587, 2525])('requires verified TLS on port %s', (smtpPort) => {
+    expect(
+      resolveSmtpOptions({ mode: 'smtp', from, smtpHost: 'smtp.example.com', smtpPort }),
+    ).toEqual({
+      host: 'smtp.example.com',
+      port: smtpPort,
+      secure: smtpPort === 465,
+      requireTLS: true,
+      rejectUnauthorized: true,
+    });
+  });
+  test('validates direct package callers', () => {
+    expect(() => createMailDispatch({ mode: 'smtp', from, smtpHost: '', smtpPort: 0 })).toThrow();
   });
 });

@@ -1,11 +1,17 @@
 import { loadFileById, loadStorageBackend, type FileRecord } from '@open-fms/database';
 import { LifecycleError } from '@open-fms/lifecycle';
-import { createStorageAdapter, type S3StorageAdapter } from '@open-fms/storage';
+import {
+  closeBody,
+  createStorageAdapter,
+  isInvalidObjectRange,
+  type S3StorageAdapter,
+} from '@open-fms/storage';
+import { DownloadRangeError, validateDownloadRange } from './headers.ts';
 
 export type DownloadRequest = {
   fileId: string;
   callerId: string;
-  allowDirectDownload: boolean;
+  abortSignal?: AbortSignal | undefined;
   rangeHeader?: string | undefined;
 };
 
@@ -30,9 +36,7 @@ export async function openDownload(
   input: DownloadRequest,
   credentials: DownloadCredentials,
 ): Promise<DownloadPayload> {
-  if (!input.allowDirectDownload) {
-    throw new LifecycleError('FILE_NOT_DOWNLOADABLE');
-  }
+  const range = validateDownloadRange(input.rangeHeader);
 
   const file = await loadFileById(input.fileId);
   if (!file || file.callerId !== input.callerId) {
@@ -64,20 +68,29 @@ export async function openDownload(
     credentials,
   });
 
-  const object = await storage.getObject({
-    bucket: backend.cleanBucket,
-    key: file.objectKey,
-    range: input.rangeHeader,
-  });
+  try {
+    const object = await storage.getObject({
+      bucket: backend.cleanBucket,
+      key: file.objectKey,
+      range,
+      abortSignal: input.abortSignal,
+    });
 
-  return {
-    file,
-    storage,
-    body: object.body,
-    etag: object.etag,
-    contentLength: object.contentLength,
-    contentRange: object.contentRange,
-    contentType: undefined,
-    filename: file.objectKey.split('/').at(-1) ?? file.id,
-  };
+    return {
+      file,
+      storage,
+      body: closeBody(object.body, () => {
+        storage.destroy();
+      }),
+      etag: object.etag,
+      contentLength: object.contentLength,
+      contentRange: object.contentRange,
+      contentType: file.detectedContentType ?? 'application/octet-stream',
+      filename: file.originalFilename,
+    };
+  } catch (error) {
+    storage.destroy();
+    if (error instanceof Error && isInvalidObjectRange(error)) throw new DownloadRangeError();
+    throw error;
+  }
 }

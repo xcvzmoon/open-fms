@@ -15,8 +15,6 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
   group: docs-${{ github.workflow }}-${{ github.ref }}
@@ -36,13 +34,13 @@ jobs:
 
       - name: Install docs dependencies
         working-directory: docs
-        run: pnpm install
+        run: vp install --frozen-lockfile
 
       - name: Build docs site
         working-directory: docs
         env:
           NUXT_APP_BASE_URL: /open-fms/
-        run: pnpm run build
+        run: vp run build
 
       - name: Upload Pages artifact
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
@@ -51,6 +49,10 @@ jobs:
           path: docs/.docs/.output/public
 
   deploy:
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
     name: Deploy to GitHub Pages
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     needs: build

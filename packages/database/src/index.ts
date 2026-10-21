@@ -1,5 +1,6 @@
 export {
   authAccounts,
+  authRateLimits,
   authApiKeys,
   authSchema,
   authSessions,
@@ -17,6 +18,7 @@ export {
 export type { GenerateTimestampsWithAuditOptions } from './helpers/index.ts';
 export {
   loadCallerContext,
+  consumeCallerRateLimit,
   type CallerContext,
   type CallerCredentialPolicy,
   type CallerRecord,
@@ -24,20 +26,24 @@ export {
 export { loadFileById, loadFileForCaller, type FileRecord } from './queries/files.ts';
 export {
   approveCaller,
-  consumeUploadPass,
+  assertSignupAllowed,
+  bootstrapAdmin,
+  discardUnissuedKey,
+  issueCallerCredential,
+  loadCredentialOwner,
+  loadCredentialPolicy,
+  loadPendingCaller,
+  type CredentialPolicyInput,
   createSelfSignupCaller,
   defaultSignupSettings,
   isEmailDomainAllowed,
   issueSetupCode,
   loadSignupSettings,
-  mintUploadPass,
   purgeExpiredSetupCodes,
   redeemSetupCode,
   revokeCallerCredential,
-  rotateCallerCredential,
   saveSignupSettings,
   type IssuedSetupCode,
-  type IssuedUploadPass,
   type SignupSettings,
 } from './queries/registration.ts';
 export {
@@ -47,6 +53,8 @@ export {
 } from './queries/storage-backends.ts';
 export {
   claimNextScanJob,
+  heartbeatScanJob,
+  loadScanCallerPolicy,
   completeScanJob,
   failScanJob,
   markScanJobRunning,
@@ -56,15 +64,11 @@ export {
 export { pingDatabase } from './queries/health.ts';
 export {
   reconcileFileObjects,
-  upsertCallerCredential,
   type ReconcileMismatch,
   type ReconcileResult,
   type ReconcileStorage,
 } from './queries/reconcile.ts';
 export {
-  expireSetupCodes,
-  expireUploadPasses,
-  expireUploadSessions,
   listPurgeableFiles,
   listStaleUploadFiles,
   reclaimScanLeases,
@@ -101,7 +105,6 @@ export {
   serviceSettings,
   setupCodes,
   storageBackends,
-  uploadPasses,
   uploadParts,
   uploadSessions,
 } from './tables/index.ts';

@@ -2,19 +2,25 @@ import {
   claimNextScanJob,
   completeScanJob,
   failScanJob,
+  heartbeatScanJob,
+  reclaimExpiredScanLeases,
   loadFileById,
+  loadScanCallerPolicy,
   loadStorageBackend,
   markScanJobRunning,
 } from '@open-fms/database';
 import { applyScanVerdict, markScanning } from '@open-fms/lifecycle';
-import { createStorageAdapter, type S3StorageAdapter } from '@open-fms/storage';
-import {
-  checkStructure,
-  sniffContentType,
-  verifyChecksum,
-  type ScanCheckFailure,
-} from './checks.ts';
-import { createClamAvClient, type ClamAvClient } from './clamav.ts';
+import { createStorageAdapter } from '@open-fms/storage';
+import { fileTypeFromBuffer } from 'file-type';
+import { createReadStream } from 'node:fs';
+import * as v from 'valibot';
+import { checkArchiveFile, checkContentType } from './checks.ts';
+import { createClamAvClient } from './clamav.ts';
+import { maintainLease } from './lease.ts';
+import { runWorkerLoop } from './loop.ts';
+import { spoolObject } from './spool.ts';
+
+export { runWorkerLoop } from './loop.ts';
 
 export type ScanWorkerConfig = {
   workerId: string;
@@ -23,173 +29,188 @@ export type ScanWorkerConfig = {
     secretAccessKey: string;
     sessionToken?: string | undefined;
   };
-  clamAv?: { host: string; port: number; timeoutMs?: number } | undefined;
-  pollIntervalMs?: number;
+  clamAv: { host: string; port: number; timeoutMs: number };
+  maxFileBytes: number;
+  leaseMs: number;
+  jobTimeoutMs: number;
+  pollIntervalMs: number;
 };
-
 export type ScanOutcome = {
   status: 'clean' | 'infected' | 'rejected' | 'failed' | 'skipped';
   reason: string | null;
 };
 
-function isFileStatus(status: string): status is 'quarantined' | 'scanning' {
-  return status === 'quarantined' || status === 'scanning';
-}
-
-async function loadObjectBytes(
-  storage: S3StorageAdapter,
-  bucket: string,
-  key: string,
-): Promise<Buffer> {
-  const object = await storage.getObject({ bucket, key });
-  const response = new Response(object.body);
-  return Buffer.from(await response.arrayBuffer());
-}
-
-export async function processScanJob(
-  jobId: string,
+export async function processNextScanJob(
   config: ScanWorkerConfig,
+  signal: AbortSignal,
 ): Promise<ScanOutcome> {
-  const claimed = await claimNextScanJob(config.workerId);
-  if (!claimed || claimed.id !== jobId) {
-    return { status: 'skipped', reason: 'job_not_claimable' };
-  }
-
-  await markScanJobRunning(claimed.id);
-  const file = await loadFileById(claimed.fileId);
-  if (!file) {
-    await failScanJob({ jobId: claimed.id, reason: 'FILE_NOT_FOUND', retry: false });
-    return { status: 'failed', reason: 'FILE_NOT_FOUND' };
-  }
-
-  const backend = await loadStorageBackend(file.storageBackendId);
-  if (!backend) {
-    await failScanJob({ jobId: claimed.id, reason: 'STORAGE_BACKEND_MISSING', retry: false });
-    return { status: 'failed', reason: 'STORAGE_BACKEND_MISSING' };
-  }
-
-  const storage = createStorageAdapter({
-    config: {
-      id: backend.id,
-      name: backend.name,
-      kind: backend.kind,
-      endpoint: backend.endpoint,
-      region: backend.region,
-      quarantineBucket: backend.quarantineBucket,
-      cleanBucket: backend.cleanBucket,
-      forensicBucket: backend.forensicBucket,
-      credentialRef: backend.credentialRef,
-      forcePathStyle: backend.kind !== 's3',
+  signal.throwIfAborted();
+  const claimed = await claimNextScanJob(config.workerId, config.leaseMs);
+  if (!claimed) return { status: 'skipped', reason: null };
+  const controller = new AbortController();
+  const workSignal = AbortSignal.any([
+    signal,
+    controller.signal,
+    AbortSignal.timeout(config.jobTimeoutMs),
+  ]);
+  const heartbeatStop = new AbortController();
+  const heartbeat = maintainLease(
+    () => heartbeatScanJob(claimed.id, claimed.leaseToken, config.leaseMs),
+    config.leaseMs,
+    () => {
+      controller.abort();
     },
-    credentials: config.storageCredentials,
-  });
-
-  let scanRowVersion = file.rowVersion;
-  if (file.status === 'quarantined') {
-    await markScanning({ fileId: file.id, expectedRowVersion: file.rowVersion });
-    scanRowVersion = file.rowVersion + 1;
-  }
-
+    heartbeatStop.signal,
+  );
+  let storage: ReturnType<typeof createStorageAdapter> | undefined;
+  const destroyStorage = () => {
+    storage?.destroy();
+  };
+  workSignal.addEventListener('abort', destroyStorage, { once: true });
+  let spool: Awaited<ReturnType<typeof spoolObject>> | undefined;
   try {
-    const bytes = await loadObjectBytes(storage, backend.quarantineBucket, file.objectKey);
-    const inspected = await sniffContentType(bytes);
-
-    if (file.checksumSha256 && !verifyChecksum(bytes, file.checksumSha256)) {
-      await failScanJob({ jobId: claimed.id, reason: 'SCAN_HASH_MISMATCH', retry: false });
-      return { status: 'failed', reason: 'SCAN_HASH_MISMATCH' };
+    if (!(await markScanJobRunning(claimed.id, claimed.leaseToken)))
+      throw new Error('SCAN_LEASE_LOST');
+    const file = await loadFileById(claimed.fileId);
+    if (
+      file &&
+      (file.status === 'clean' || file.status === 'infected' || file.status === 'rejected')
+    ) {
+      if (!(await completeScanJob(claimed.id, claimed.leaseToken)))
+        throw new Error('SCAN_LEASE_LOST');
+      return { status: file.status, reason: 'SCAN_VERDICT_ALREADY_APPLIED' };
     }
-
-    const structure = checkStructure(bytes);
-    if (!structure.ok) {
-      if (isFileStatus(file.status)) {
-        await applyScanVerdict({
-          fileId: file.id,
-          expectedRowVersion: scanRowVersion,
-          verdict: 'rejected',
-          storage: {
-            copyObject: (input) => storage.copyObject(input),
-            headObject: (input) => storage.headObject(input),
-            deleteObject: (input) => storage.deleteObject(input),
-          },
-          cleanBucket: backend.cleanBucket,
-          quarantineBucket: backend.quarantineBucket,
-          objectKey: file.objectKey,
-          sealedEtag: file.sealedEtag ?? file.etag ?? '',
-          scanPolicyVersion: file.scanPolicyVersion,
-        });
-      }
-      await completeScanJob(claimed.id);
-      return { status: 'rejected', reason: structure.reason };
+    if (!file || !['quarantined', 'scanning'].includes(file.status))
+      throw new Error('SCAN_FILE_STATE_INVALID');
+    const callerPolicy = await loadScanCallerPolicy(file.callerId);
+    if (!callerPolicy) throw new Error('SCAN_CALLER_MISSING');
+    const backend = await loadStorageBackend(file.storageBackendId);
+    if (!backend) throw new Error('SCAN_BACKEND_MISSING');
+    storage = createStorageAdapter({
+      config: { ...backend, forcePathStyle: backend.kind !== 's3' },
+      credentials: config.storageCredentials,
+    });
+    let rowVersion = file.rowVersion;
+    if (file.status === 'quarantined') {
+      await markScanning({ fileId: file.id, expectedRowVersion: rowVersion });
+      rowVersion += 1;
     }
-
-    if (config.clamAv) {
-      const clam = createClamAvClient(config.clamAv);
-      const verdict = await clam.scanBuffer(bytes);
-      if (verdict.status === 'infected') {
-        if (isFileStatus(file.status)) {
-          await applyScanVerdict({
-            fileId: file.id,
-            expectedRowVersion: scanRowVersion,
-            verdict: 'infected',
-            storage: {
-              copyObject: (input) => storage.copyObject(input),
-              headObject: (input) => storage.headObject(input),
-              deleteObject: (input) => storage.deleteObject(input),
-            },
-            cleanBucket: backend.cleanBucket,
-            quarantineBucket: backend.quarantineBucket,
-            objectKey: file.objectKey,
-            sealedEtag: file.sealedEtag ?? file.etag ?? '',
-            scanPolicyVersion: file.scanPolicyVersion,
+    const sealedEtag = file.sealedEtag;
+    if (
+      !sealedEtag ||
+      file.sizeBytes === null ||
+      file.sizeBytes > Math.min(config.maxFileBytes, callerPolicy.maxFileSizeBytes)
+    )
+      throw new Error('SCAN_SEAL_INVALID');
+    const object = await storage.getObject({
+      bucket: backend.quarantineBucket,
+      key: file.objectKey,
+      expectedEtag: sealedEtag,
+      abortSignal: workSignal,
+    });
+    spool = await spoolObject(
+      v.parse(v.instance(ReadableStream<Uint8Array>), object.body),
+      Math.min(file.sizeBytes, config.maxFileBytes, callerPolicy.maxFileSizeBytes),
+      workSignal,
+    );
+    if (
+      spool.sizeBytes !== file.sizeBytes ||
+      (file.checksumSha256 && !spool.sha256.equals(file.checksumSha256))
+    )
+      throw new Error('SCAN_HASH_MISMATCH');
+    const structure = await checkArchiveFile(
+      spool.path,
+      spool.prefix,
+      spool.sizeBytes,
+      undefined,
+      workSignal,
+    );
+    const detected = await fileTypeFromBuffer(spool.prefix);
+    const detectedContentType = detected?.mime ?? null;
+    const mimeAllowed = checkContentType(
+      detectedContentType,
+      file.declaredContentType,
+      callerPolicy.allowedContentTypes,
+    );
+    let verdict: 'clean' | 'infected' | 'rejected' = 'rejected';
+    let reason = mimeAllowed ? structure.reason : 'SCAN_TYPE_DISALLOWED';
+    if (structure.ok && mimeAllowed) {
+      const clam = await createClamAvClient(config.clamAv).scanStream(
+        createReadStream(spool.path),
+        workSignal,
+      );
+      if (clam.status === 'error') throw new Error('SCAN_CLAMAV_ERROR');
+      verdict = clam.status;
+      reason = clam.signature ?? detected?.mime ?? null;
+    }
+    workSignal.throwIfAborted();
+    const activeStorage = storage;
+    await applyScanVerdict({
+      fileId: file.id,
+      expectedRowVersion: rowVersion,
+      scanJobId: claimed.id,
+      leaseToken: claimed.leaseToken,
+      verdict,
+      detectedContentType,
+      storage: {
+        copyObject: async (input) => {
+          workSignal.throwIfAborted();
+          const result = await activeStorage.copyObject({
+            ...input,
+            sourceEtag: sealedEtag,
+            abortSignal: workSignal,
           });
-        }
-        await completeScanJob(claimed.id);
-        return { status: 'infected', reason: verdict.signature };
-      }
-      if (verdict.status === 'error') {
-        await failScanJob({
-          jobId: claimed.id,
-          reason: `SCAN_CLAMAV_ERROR:${verdict.detail ?? 'unknown'}`,
-          retry: true,
-        });
-        return { status: 'failed', reason: 'SCAN_CLAMAV_ERROR' };
-      }
-    }
-
-    if (isFileStatus(file.status)) {
-      await applyScanVerdict({
-        fileId: file.id,
-        expectedRowVersion: scanRowVersion,
-        verdict: 'clean',
-        storage: {
-          copyObject: (input) => storage.copyObject(input),
-          headObject: (input) => storage.headObject(input),
-          deleteObject: (input) => storage.deleteObject(input),
+          workSignal.throwIfAborted();
+          return result;
         },
-        cleanBucket: backend.cleanBucket,
-        quarantineBucket: backend.quarantineBucket,
-        objectKey: file.objectKey,
-        sealedEtag: file.sealedEtag ?? file.etag ?? '',
-        scanPolicyVersion: file.scanPolicyVersion,
-      });
-    }
-
-    await completeScanJob(claimed.id);
-    return {
-      status: 'clean',
-      reason: inspected.detectedMime,
-    };
-  } catch (error) {
-    const reason = error instanceof Error ? error.message : 'SCAN_FAILED';
+        headObject: async (input) => {
+          workSignal.throwIfAborted();
+          const result = await activeStorage.headObject({ ...input, abortSignal: workSignal });
+          workSignal.throwIfAborted();
+          return result;
+        },
+        deleteObject: async (input) => {
+          workSignal.throwIfAborted();
+          await activeStorage.deleteObject({ ...input, abortSignal: workSignal });
+          workSignal.throwIfAborted();
+        },
+      },
+      cleanBucket: backend.cleanBucket,
+      quarantineBucket: backend.quarantineBucket,
+      objectKey: file.objectKey,
+      sealedEtag,
+      scanPolicyVersion: file.scanPolicyVersion,
+    });
+    if (!(await completeScanJob(claimed.id, claimed.leaseToken)))
+      throw new Error('SCAN_LEASE_LOST');
+    return { status: verdict, reason };
+  } catch {
     await failScanJob({
       jobId: claimed.id,
-      reason,
-      retry: claimed.attemptCount + 1 < claimed.maxAttempts,
+      leaseToken: claimed.leaseToken,
+      reason: workSignal.aborted ? 'SCAN_ABORTED' : 'SCAN_FAILED',
+      retry: true,
     });
-    return { status: 'failed', reason };
+    return { status: 'failed', reason: 'SCAN_FAILED' };
   } finally {
-    storage.destroy();
+    workSignal.removeEventListener('abort', destroyStorage);
+    heartbeatStop.abort();
+    await heartbeat;
+    try {
+      await spool?.cleanup();
+    } finally {
+      storage?.destroy();
+    }
   }
 }
 
-export type { ScanCheckFailure, ClamAvClient };
+export async function runScanWorker(config: ScanWorkerConfig, signal: AbortSignal): Promise<void> {
+  await runWorkerLoop(
+    async () => {
+      await reclaimExpiredScanLeases();
+      return processNextScanJob(config, signal);
+    },
+    signal,
+    config.pollIntervalMs,
+  );
+}

@@ -32,6 +32,7 @@ export async function runStorageCanary(input: StorageCanaryInput): Promise<Canar
   if (!input.enabled || !input.head) {
     return {
       ...processResult,
+      status: processResult.status === 'error' ? 'error' : 'skipped',
       checks: { ...processResult.checks, storage: 'skipped' },
     };
   }

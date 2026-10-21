@@ -1,24 +1,15 @@
+import type { Readable } from 'node:stream';
+import { createConnection } from 'node:net';
+import * as v from 'valibot';
+
 export type ClamAvVerdict = {
   status: 'clean' | 'infected' | 'error';
   signature: string | null;
   detail: string | null;
 };
-
 export type ClamAvClient = {
-  scanBuffer: (bytes: Uint8Array) => Promise<ClamAvVerdict>;
+  scanStream: (source: Readable, signal: AbortSignal) => Promise<ClamAvVerdict>;
 };
-
-function parseClamResponse(chunk: string): ClamAvVerdict {
-  const text = chunk.trim();
-  if (text.endsWith('OK')) {
-    return { status: 'clean', signature: null, detail: text };
-  }
-  if (text.includes('FOUND')) {
-    const signature = text.split(' ').at(-2) ?? text;
-    return { status: 'infected', signature, detail: text };
-  }
-  return { status: 'error', signature: null, detail: text };
-}
 
 export function createClamAvClient(options: {
   host: string;
@@ -26,49 +17,78 @@ export function createClamAvClient(options: {
   timeoutMs?: number;
 }): ClamAvClient {
   return {
-    async scanBuffer(bytes: Uint8Array): Promise<ClamAvVerdict> {
-      const { createConnection } = await import('node:net');
+    scanStream(source, signal) {
       return new Promise((resolve) => {
         const socket = createConnection({ host: options.host, port: options.port });
-        const chunks: Buffer[] = [];
+        let response = '';
         let settled = false;
-
-        const finish = (verdict: ClamAvVerdict) => {
-          if (settled) {
+        const timer = setTimeout(() => {
+          finish('error', 'SCAN_CLAMAV_TIMEOUT');
+        }, options.timeoutMs ?? 30_000);
+        function finish(status: ClamAvVerdict['status'], detail: string): void {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
+          signal.removeEventListener('abort', abort);
+          source.destroy();
+          socket.destroy();
+          resolve({ status, signature: status === 'infected' ? detail : null, detail });
+        }
+        function abort(): void {
+          finish('error', 'SCAN_ABORTED');
+        }
+        signal.addEventListener('abort', abort, { once: true });
+        if (signal.aborted) abort();
+        function write(bytes: Buffer): Promise<void> {
+          return new Promise((done, reject) => {
+            socket.write(bytes, (error) => {
+              if (error) reject(error);
+              else done();
+            });
+          });
+        }
+        socket.on('connect', () => {
+          void (async () => {
+            await write(Buffer.from('zINSTREAM\0'));
+            for await (const chunk of source) {
+              const bytes = Buffer.from(v.parse(v.instance(Uint8Array), chunk));
+              for (let offset = 0; offset < bytes.length; offset += 65536) {
+                signal.throwIfAborted();
+                const part = bytes.subarray(offset, offset + 65536);
+                const header = Buffer.alloc(4);
+                header.writeUInt32BE(part.length);
+                // oxlint-disable-next-line no-await-in-loop -- Write each frame header and payload in protocol order with backpressure.
+                await write(header);
+                // oxlint-disable-next-line no-await-in-loop -- Write each frame header and payload in protocol order with backpressure.
+                await write(part);
+              }
+            }
+            await write(Buffer.alloc(4));
+          })().catch(() => {
+            finish('error', 'SCAN_CLAMAV_STREAM_ERROR');
+          });
+        });
+        socket.on('data', (bytes: Buffer) => {
+          response += bytes.toString('utf8');
+          if (response.length > 4096) {
+            finish('error', 'SCAN_CLAMAV_RESPONSE_LIMIT');
             return;
           }
-          settled = true;
-          socket.destroy();
-          resolve(verdict);
-        };
-
-        socket.setTimeout(options.timeoutMs ?? 30_000);
-        socket.on('connect', () => {
-          socket.write(`INSTREAM\0`);
-          let offset = 0;
-          const chunkSize = 64 * 1024;
-          while (offset < bytes.length) {
-            const end = Math.min(offset + chunkSize, bytes.length);
-            const slice = bytes.subarray(offset, end);
-            const size = Buffer.alloc(4);
-            size.writeUInt32BE(slice.length);
-            socket.write(size);
-            socket.write(Buffer.from(slice));
-            offset = end;
-          }
-          socket.write(Buffer.alloc(4));
-        });
-        socket.on('data', (chunk: Buffer) => {
-          chunks.push(chunk);
+          const end = response.indexOf('\0');
+          if (end < 0) return;
+          const line = response.slice(0, end);
+          if (line === 'stream: OK') finish('clean', line);
+          else if (/^stream: .+ FOUND$/.test(line)) finish('infected', line.slice(8, -6));
+          else finish('error', 'SCAN_CLAMAV_INVALID_RESPONSE');
         });
         socket.on('end', () => {
-          finish(parseClamResponse(Buffer.concat(chunks).toString('utf8')));
+          finish('error', 'SCAN_CLAMAV_TRUNCATED_RESPONSE');
         });
-        socket.on('timeout', () => {
-          finish({ status: 'error', signature: null, detail: 'timeout' });
+        socket.on('close', () => {
+          finish('error', 'SCAN_CLAMAV_CLOSED');
         });
-        socket.on('error', (error: Error) => {
-          finish({ status: 'error', signature: null, detail: error.message });
+        socket.on('error', () => {
+          finish('error', 'SCAN_CLAMAV_CONNECTION_ERROR');
         });
       });
     },

@@ -20,19 +20,35 @@ import {
   HeadObjectCommand,
   PutObjectCommand,
   S3Client,
+  S3ServiceException,
   UploadPartCommand,
   type S3ClientConfig,
 } from '@aws-sdk/client-s3';
 import { Upload } from '@aws-sdk/lib-storage';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { Readable } from 'node:stream';
 
 export type StorageAdapterOptions = {
   config: StorageBackendConfig;
   credentials: StorageCredentials;
 };
 
+function encodeCopySegment(segment: string): string {
+  return encodeURIComponent(segment).replace(
+    /[!'()*]/g,
+    (character) => `%${character.charCodeAt(0).toString(16).toUpperCase()}`,
+  );
+}
+
 function buildClientConfig(options: StorageAdapterOptions): S3ClientConfig {
   return {
+    requestHandler: {
+      connectionTimeout: 5_000,
+      socketTimeout: 30_000,
+      requestTimeout: 60_000,
+      throwOnRequestTimeout: true,
+    },
+    maxAttempts: 2,
     region: options.config.region,
     endpoint: options.config.endpoint,
     forcePathStyle: options.config.forcePathStyle,
@@ -74,6 +90,7 @@ export class S3StorageAdapter {
   }
 
   async putObject(input: PutObjectInput): Promise<PutObjectResult> {
+    input.abortSignal?.throwIfAborted();
     const multipart = new Upload({
       client: this.#client,
       params: {
@@ -84,19 +101,35 @@ export class S3StorageAdapter {
         ContentLength: input.contentLength,
         Metadata: input.metadata,
       },
-      queueSize: 4,
+      queueSize: 2,
       partSize: 8 * 1024 * 1024,
       leavePartsOnError: false,
     });
-    const result = await multipart.done();
-    const etag = result.ETag;
-    if (!etag) {
-      throw new Error('STORAGE_PUT_MISSING_ETAG');
+    function abort(): void {
+      if (input.body instanceof Readable) input.body.destroy();
+      void multipart.abort().catch(() => {});
     }
-    return { etag: etag.replaceAll('"', '') };
+    input.abortSignal?.addEventListener('abort', abort, { once: true });
+    try {
+      input.abortSignal?.throwIfAborted();
+      const result = await multipart.done();
+      const etag = result.ETag;
+      if (!etag) {
+        throw new Error('STORAGE_PUT_MISSING_ETAG');
+      }
+      return { etag: etag.replaceAll('"', '') };
+    } finally {
+      input.abortSignal?.removeEventListener('abort', abort);
+    }
   }
 
-  async getObject(location: { bucket: string; key: string; range?: string | undefined }): Promise<{
+  async getObject(location: {
+    bucket: string;
+    key: string;
+    range?: string | undefined;
+    expectedEtag?: string | undefined;
+    abortSignal?: AbortSignal | undefined;
+  }): Promise<{
     body: ReadableStream;
     etag: string;
     contentLength: number | undefined;
@@ -107,7 +140,9 @@ export class S3StorageAdapter {
         Bucket: location.bucket,
         Key: location.key,
         Range: location.range,
+        IfMatch: location.expectedEtag,
       }),
+      { abortSignal: location.abortSignal },
     );
     const body = result.Body;
     if (!body) {
@@ -122,12 +157,17 @@ export class S3StorageAdapter {
     };
   }
 
-  async headObject(location: { bucket: string; key: string }): Promise<HeadObjectResult> {
+  async headObject(location: {
+    bucket: string;
+    key: string;
+    abortSignal?: AbortSignal | undefined;
+  }): Promise<HeadObjectResult> {
     const result = await this.#client.send(
       new HeadObjectCommand({
         Bucket: location.bucket,
         Key: location.key,
       }),
+      { abortSignal: location.abortSignal },
     );
     const etag = result.ETag;
     return {
@@ -139,18 +179,24 @@ export class S3StorageAdapter {
   }
 
   async copyObject(input: {
+    abortSignal?: AbortSignal | undefined;
     sourceBucket: string;
     sourceKey: string;
     destinationBucket: string;
     destinationKey: string;
+    sourceEtag?: string | undefined;
   }): Promise<CopyObjectResult> {
     const result = await this.#client.send(
       new CopyObjectCommand({
         Bucket: input.destinationBucket,
         Key: input.destinationKey,
-        CopySource: `${input.sourceBucket}/${input.sourceKey}`,
+        CopySource: [input.sourceBucket, ...input.sourceKey.split('/')]
+          .map(encodeCopySegment)
+          .join('/'),
+        CopySourceIfMatch: input.sourceEtag,
         MetadataDirective: 'COPY',
       }),
+      { abortSignal: input.abortSignal },
     );
     const etag = result.CopyObjectResult?.ETag;
     return {
@@ -159,16 +205,22 @@ export class S3StorageAdapter {
     };
   }
 
-  async deleteObject(location: { bucket: string; key: string }): Promise<void> {
+  async deleteObject(location: {
+    bucket: string;
+    key: string;
+    abortSignal?: AbortSignal | undefined;
+  }): Promise<void> {
     await this.#client.send(
       new DeleteObjectCommand({
         Bucket: location.bucket,
         Key: location.key,
       }),
+      { abortSignal: location.abortSignal },
     );
   }
 
   async createMultipartUpload(input: {
+    abortSignal?: AbortSignal | undefined;
     bucket: string;
     key: string;
     contentType?: string | undefined;
@@ -179,6 +231,7 @@ export class S3StorageAdapter {
         Key: input.key,
         ContentType: input.contentType,
       }),
+      { abortSignal: input.abortSignal },
     );
     if (!result.UploadId) {
       throw new Error('STORAGE_MULTIPART_MISSING_ID');
@@ -191,7 +244,9 @@ export class S3StorageAdapter {
     key: string;
     uploadId: string;
     partNumber: number;
-    body: Uint8Array;
+    body: Uint8Array | Readable;
+    contentLength?: number | undefined;
+    abortSignal?: AbortSignal | undefined;
   }): Promise<UploadPartResult> {
     const result = await this.#client.send(
       new UploadPartCommand({
@@ -200,7 +255,9 @@ export class S3StorageAdapter {
         UploadId: input.uploadId,
         PartNumber: input.partNumber,
         Body: input.body,
+        ContentLength: input.contentLength,
       }),
+      { abortSignal: input.abortSignal },
     );
     const etag = result.ETag;
     if (!etag) {
@@ -213,6 +270,7 @@ export class S3StorageAdapter {
   }
 
   async completeMultipartUpload(input: {
+    abortSignal?: AbortSignal | undefined;
     bucket: string;
     key: string;
     uploadId: string;
@@ -230,6 +288,7 @@ export class S3StorageAdapter {
           })),
         },
       }),
+      { abortSignal: input.abortSignal },
     );
     const etag = result.ETag;
     if (!etag) {
@@ -239,17 +298,23 @@ export class S3StorageAdapter {
   }
 
   async abortMultipartUpload(input: {
+    abortSignal?: AbortSignal | undefined;
     bucket: string;
     key: string;
     uploadId: string;
   }): Promise<void> {
-    await this.#client.send(
-      new AbortMultipartUploadCommand({
-        Bucket: input.bucket,
-        Key: input.key,
-        UploadId: input.uploadId,
-      }),
-    );
+    try {
+      await this.#client.send(
+        new AbortMultipartUploadCommand({
+          Bucket: input.bucket,
+          Key: input.key,
+          UploadId: input.uploadId,
+        }),
+        { abortSignal: input.abortSignal },
+      );
+    } catch (error) {
+      if (!(error instanceof Error) || error.name !== 'NoSuchUpload') throw error;
+    }
   }
 
   async presignPut(input: PresignPutInput): Promise<PresignPutResult> {
@@ -280,4 +345,16 @@ export class S3StorageAdapter {
 
 export function createStorageAdapter(options: StorageAdapterOptions): S3StorageAdapter {
   return new S3StorageAdapter(options);
+}
+
+export function isObjectNotFound(error: Error): boolean {
+  return (
+    error instanceof S3ServiceException &&
+    error.$metadata.httpStatusCode === 404 &&
+    (error.name === 'NotFound' || error.name === 'NoSuchKey')
+  );
+}
+
+export function isInvalidObjectRange(error: Error): boolean {
+  return error instanceof S3ServiceException && error.$metadata.httpStatusCode === 416;
 }

@@ -2,6 +2,7 @@ import { LifecycleError } from '@open-fms/lifecycle';
 import { defineHandler, defineRouteMeta } from 'nitro';
 import { HTTPError } from 'nitro/h3';
 import { resolveDownloadCredentials } from '~/server/downloads/credentials.ts';
+import { DownloadRangeError, downloadDisposition } from '~/server/downloads/headers.ts';
 import { openDownload } from '~/server/downloads/service.ts';
 
 defineRouteMeta({
@@ -21,7 +22,8 @@ defineRouteMeta({
     responses: {
       200: { description: 'Full object stream' },
       206: { description: 'Partial content' },
-      403: { description: 'Not downloadable (capability or status)' },
+      403: { description: 'File is not clean' },
+      416: { description: 'Invalid or unsatisfiable byte range' },
       404: { description: 'File not found' },
     },
   },
@@ -44,34 +46,41 @@ export default defineHandler(async (event) => {
       {
         fileId,
         callerId: caller.caller.id,
-        allowDirectDownload: caller.caller.allowDirectDownload,
+        abortSignal: event.req.signal,
         rangeHeader,
       },
       resolveDownloadCredentials(),
     );
 
-    const headers = new Headers();
-    headers.set('etag', download.etag);
-    headers.set('accept-ranges', 'bytes');
-    if (download.contentLength !== undefined) {
-      headers.set('content-length', String(download.contentLength));
-    }
-    if (download.contentRange) {
-      headers.set('content-range', download.contentRange);
-    }
-    if (download.contentType) {
-      headers.set('content-type', download.contentType);
-    }
-    headers.set(
-      'content-disposition',
-      `attachment; filename="${download.filename.replaceAll('"', '')}"`,
-    );
+    try {
+      const headers = new Headers();
+      headers.set('etag', `"${download.etag}"`);
+      headers.set('cache-control', 'private, no-store');
+      headers.set('x-content-type-options', 'nosniff');
+      headers.set('accept-ranges', 'bytes');
+      if (download.contentLength !== undefined) {
+        headers.set('content-length', String(download.contentLength));
+      }
+      if (download.contentRange) {
+        headers.set('content-range', download.contentRange);
+      }
+      if (download.contentType) {
+        headers.set('content-type', download.contentType);
+      }
+      headers.set('content-disposition', downloadDisposition(download.filename));
 
-    return new Response(download.body, {
-      status: download.contentRange ? 206 : 200,
-      headers,
-    });
+      return new Response(download.body, {
+        status: download.contentRange ? 206 : 200,
+        headers,
+      });
+    } catch (error) {
+      await download.body.cancel().catch(() => {});
+      throw error;
+    }
   } catch (error) {
+    if (error instanceof DownloadRangeError) {
+      throw new HTTPError(error.message, { status: 416 });
+    }
     if (error instanceof LifecycleError) {
       const status =
         error.code === 'FILE_NOT_FOUND' ? 404 : error.code === 'FILE_NOT_DOWNLOADABLE' ? 403 : 400;

@@ -1,4 +1,13 @@
-import { boolean, index, integer, jsonb, text, timestamp, unique } from 'drizzle-orm/pg-core';
+import {
+  bigint,
+  boolean,
+  index,
+  integer,
+  jsonb,
+  text,
+  timestamp,
+  unique,
+} from 'drizzle-orm/pg-core';
 import { fmsSchema } from '../schema.ts';
 
 export const authUsers = fmsSchema.table(
@@ -101,6 +110,13 @@ export const authApiKeys = fmsSchema.table(
   ],
 );
 
+export const authRateLimits = fmsSchema.table('auth_rate_limits', {
+  id: text('id').primaryKey(),
+  key: text('key').notNull().unique(),
+  count: integer('count').notNull(),
+  lastRequest: bigint('last_request', { mode: 'number' }).notNull(),
+});
+
 /**
  * Model-name map for `drizzleAdapter`. Better Auth resolves tables by model name, not SQL name.
  */
@@ -110,4 +126,5 @@ export const authSchema = {
   account: authAccounts,
   verification: authVerifications,
   apikey: authApiKeys,
+  rateLimit: authRateLimits,
 };

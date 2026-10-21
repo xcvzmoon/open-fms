@@ -27,6 +27,7 @@ export type ObjectLocation = {
 };
 
 export type PutObjectInput = {
+  abortSignal?: AbortSignal | undefined;
   location: ObjectLocation;
   body: Uint8Array | string | Readable;
   contentType?: string | undefined;

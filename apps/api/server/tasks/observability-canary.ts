@@ -1,5 +1,5 @@
 import { loadDefaultStorageBackend } from '@open-fms/database';
-import { createStorageAdapter } from '@open-fms/storage';
+import { createStorageAdapter, isObjectNotFound } from '@open-fms/storage';
 import { defineTask } from 'nitro/task';
 import { runStorageCanary } from '~/server/observability/canary.ts';
 
@@ -45,8 +45,7 @@ export default defineTask({
                   key: 'healthz-canary',
                 });
               } catch (error) {
-                const message = error instanceof Error ? error.message : 'head_failed';
-                if (!message.includes('NotFound') && !message.includes('404')) {
+                if (!(error instanceof Error) || !isObjectNotFound(error)) {
                   throw error;
                 }
               } finally {

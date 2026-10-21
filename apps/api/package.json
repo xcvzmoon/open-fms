@@ -6,23 +6,26 @@
     "build": "nitro build",
     "dev": "nitro dev",
     "preview": "nitro preview",
-    "typecheck": "tsc"
+    "typecheck": "tsc",
+    "auth:bootstrap-admin": "node --experimental-strip-types server/auth/bootstrap-admin.ts"
   },
   "dependencies": {
     "@better-auth/api-key": "catalog:",
     "@open-fms/database": "workspace:*",
-    "@opentelemetry/exporter-trace-otlp-http": "catalog:otel",
-    "@opentelemetry/sdk-node": "catalog:otel",
     "@open-fms/lifecycle": "workspace:*",
     "@open-fms/mailer": "workspace:*",
     "@open-fms/storage": "workspace:*",
+    "@opentelemetry/exporter-trace-otlp-http": "catalog:otel",
+    "@opentelemetry/sdk-node": "catalog:otel",
     "better-auth": "catalog:",
+    "drizzle-orm": "catalog:database",
     "h3": "catalog:",
     "valibot": "catalog:"
   },
   "devDependencies": {
     "@types/node": "catalog:",
     "nitro": "catalog:api",
+    "postgres": "catalog:database",
     "typescript": "catalog:"
   }
 }

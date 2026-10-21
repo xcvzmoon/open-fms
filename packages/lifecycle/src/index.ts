@@ -9,6 +9,7 @@ export {
   markScanning,
   markUploading,
   purgeFile,
+  retireFailedScans,
   type CreateFileInput,
   type CreatedFile,
   type GuardedTransitionInput,

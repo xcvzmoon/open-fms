@@ -13,7 +13,13 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  validate:
+    uses: ./.github/workflows/ci.yaml
+    permissions:
+      contents: read
+
   create-release:
+    needs: validate
     name: Create Release
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -36,16 +42,6 @@ jobs:
             echo "Release tag $RELEASE_TAG does not match package version v$package_version." >&2
             exit 1
           fi
-
-      - name: Build workspace packages
-        run: vp run --filter "@open-fms/database" --filter "@open-fms/mailer" --filter "@open-fms/storage" --filter "@open-fms/lifecycle" --filter "@open-fms/scan-worker" build
-
-      - name: Check, typecheck, test, and build
-        run: |
-          vp run check
-          vp run typecheck
-          vp run test
-          vp run build
 
       - name: Create or sync release
         env:

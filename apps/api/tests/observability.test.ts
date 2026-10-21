@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vite-plus/test';
-import { runProcessCanary } from '../server/observability/canary.ts';
+import { runProcessCanary, runStorageCanary } from '../server/observability/canary.ts';
 import { resolveOtelConfig } from '../server/observability/otel.ts';
 
 describe('process canary', () => {
@@ -27,4 +27,10 @@ describe('resolveOtelConfig', () => {
     expect(config.otlpEndpoint).toBe('http://localhost:4318');
     expect(config.serviceName).toBe('open-fms');
   });
+});
+
+test('a skipped storage probe does not report storage connectivity success', async () => {
+  const result = await runStorageCanary({ enabled: false });
+  expect(result.status).toBe('skipped');
+  expect(result.checks).toEqual({ process: 'ok', storage: 'skipped' });
 });

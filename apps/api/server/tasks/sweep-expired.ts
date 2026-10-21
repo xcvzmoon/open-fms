@@ -1,51 +1,58 @@
 import {
-  expireSetupCodes,
-  expireUploadPasses,
-  expireUploadSessions,
   listStaleUploadFiles,
+  purgeExpiredSetupCodes,
   reclaimScanLeases,
+  loadUploadSessionByFileId,
 } from '@open-fms/database';
-import { expireStaleUpload } from '@open-fms/lifecycle';
+import { abortFile, retireFailedScans } from '@open-fms/lifecycle';
 import { defineTask } from 'nitro/task';
+import { resolveUploadCredentials } from '../uploads/credentials.ts';
+import { withUploadLock } from '../uploads/lock.ts';
+import { resolveStorageAdapter } from '../uploads/service.ts';
 
 export default defineTask({
   meta: {
     name: 'sweep-expired',
-    description: 'Expire setup codes, upload passes, upload sessions, and stale uploads',
+    description: 'Expire pending registration and uploads and recover scan leases',
   },
   async run() {
-    const setupCodes = await expireSetupCodes();
-    const uploadPasses = await expireUploadPasses();
-    const uploadSessions = await expireUploadSessions();
+    const setupCodes = await purgeExpiredSetupCodes();
     const scanLeases = await reclaimScanLeases();
-
-    const stale = await listStaleUploadFiles();
-    const results = await Promise.allSettled(
-      stale.map((file) =>
-        expireStaleUpload({
-          fileId: file.id,
-          expectedStatus: file.status,
-          expectedRowVersion: file.rowVersion,
-          reservedBytes: file.sizeBytes ?? 0,
-          reason: 'upload_expired',
-        }),
-      ),
-    );
-    let staleUploads = 0;
-    for (const result of results) {
-      if (result.status === 'fulfilled') {
-        staleUploads += 1;
+    const failedScans = await retireFailedScans();
+    let expired = 0;
+    let failed = 0;
+    for (const file of await listStaleUploadFiles()) {
+      try {
+        // oxlint-disable-next-line no-await-in-loop -- Finish each locked expiration before admitting the next storage operation.
+        await withUploadLock(file.id, file.callerId, async () => {
+          const session = await loadUploadSessionByFileId(file.id);
+          if (session?.multipartUploadId) {
+            const storage = await resolveStorageAdapter(
+              file.storageBackendId,
+              resolveUploadCredentials(),
+            );
+            try {
+              await storage.abortMultipartUpload({
+                bucket: storage.quarantineBucket,
+                key: file.objectKey,
+                uploadId: session.multipartUploadId,
+              });
+            } finally {
+              storage.destroy();
+            }
+          }
+          await abortFile({
+            fileId: file.id,
+            expectedStatus: file.status,
+            expectedRowVersion: file.rowVersion,
+            reason: 'upload_expired',
+          });
+        });
+        expired += 1;
+      } catch {
+        failed += 1;
       }
     }
-
-    return {
-      result: {
-        setupCodes,
-        uploadPasses,
-        uploadSessions,
-        scanLeases,
-        staleUploads,
-      },
-    };
+    return { result: { setupCodes, scanLeases, failedScans, expired, failed } };
   },
 });

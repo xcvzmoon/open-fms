@@ -20,6 +20,8 @@ catalog:
   valibot: ^1.5.0
   vite: npm:@voidzero-dev/vite-plus-core@1.0.0-rc.0
   vite-plus: 1.0.0-rc.0
+  yauzl: 3.4.0
+  '@types/yauzl': ^3.4.0
 
 catalogs:
   api:

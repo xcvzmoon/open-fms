@@ -15,7 +15,7 @@ export const uploadSessions = fmsSchema.table(
     callerId: uuid('caller_id')
       .notNull()
       .references(() => callers.id),
-    mode: text('mode', { enum: ['proxy_single', 'proxy_parts', 'direct'] })
+    mode: text('mode', { enum: ['proxy_single', 'proxy_parts'] })
       .notNull()
       .default('proxy_single'),
     status: text('status', {

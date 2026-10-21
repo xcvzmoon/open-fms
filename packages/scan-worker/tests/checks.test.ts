@@ -9,21 +9,21 @@ describe('scan checks', () => {
     expect(verifyChecksum(Buffer.from('tampered'), digest)).toBe(false);
   });
 
-  test('rejects empty payloads', () => {
-    const result = checkStructure(new Uint8Array());
+  test('rejects empty payloads', async () => {
+    const result = await checkStructure(new Uint8Array());
     expect(result.ok).toBe(false);
     expect(result.reason).toContain('empty');
   });
 
-  test('allows non-archive payloads', () => {
-    const result = checkArchiveBomb(Buffer.from('plain text payload'));
+  test('allows non-archive payloads', async () => {
+    const result = await checkArchiveBomb(Buffer.from('plain text payload'));
     expect(result.ok).toBe(true);
   });
 
-  test('flags zip bombs by entry count', () => {
+  test('flags zip bombs by entry count', async () => {
     const zipHeader = Buffer.from([0x50, 0x4b, 0x03, 0x04, 0x00, 0x00]);
     const bomb = Buffer.concat(Array.from({ length: 50 }, () => zipHeader));
-    const result = checkArchiveBomb(bomb, {
+    const result = await checkArchiveBomb(bomb, {
       maxEntries: 10,
       maxDeclaredUncompressedBytes: 1024,
     });

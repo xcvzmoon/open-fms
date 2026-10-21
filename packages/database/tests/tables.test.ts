@@ -67,8 +67,6 @@ describe('registration tables', () => {
       expect.arrayContaining([
         'maxFileSizeBytes',
         'quotaBytes',
-        'allowDirectUpload',
-        'allowDirectDownload',
         'signupSource',
         'createdBy',
         'updatedBy',
@@ -77,13 +75,13 @@ describe('registration tables', () => {
     );
   });
 
-  test('callerCredentials stores hashed secrets, revocation fields, and audit actors', () => {
+  test('callerCredentials binds native keys to policy, revocation fields, and audit actors', () => {
     const columns = getTableColumns(callerCredentials);
     expect(Object.keys(columns)).toEqual(
       expect.arrayContaining([
         'keyId',
-        'secretHash',
-        'pepperVersion',
+        'scopes',
+        'allowedCidrs',
         'expiresAt',
         'revokedAt',
         'revokedReason',

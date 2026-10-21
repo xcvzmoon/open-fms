@@ -47,6 +47,7 @@ describe('resolveMailerEnv', () => {
       SMTP_PORT: '1025',
     });
     expect(env.mode).toBe('smtp');
+    if (env.mode !== 'smtp') throw new Error('SMTP_EXPECTED');
     expect(env.smtpHost).toBe('mailpit');
     expect(env.smtpPort).toBe(1025);
   });
@@ -59,10 +60,10 @@ describe('resolveMailerEnv', () => {
 });
 
 describe('isPublicRequest', () => {
-  test('allows auth, signup, health, and options', () => {
+  test('allows auth, health, and options while protecting caller signup', () => {
     expect(isPublicRequest('/api/auth/sign-in/email', 'POST')).toBe(true);
-    expect(isPublicRequest('/api/v1/signup', 'POST')).toBe(true);
-    expect(isPublicRequest('/api/v1/signup/redeem', 'POST')).toBe(true);
+    expect(isPublicRequest('/api/v1/signup', 'POST')).toBe(false);
+    expect(isPublicRequest('/api/v1/signup/redeem', 'POST')).toBe(false);
     expect(isPublicRequest('/healthz', 'GET')).toBe(true);
     expect(isPublicRequest('/readyz', 'GET')).toBe(true);
     expect(isPublicRequest('/api/me', 'OPTIONS')).toBe(true);

@@ -1,11 +1,11 @@
 # Local S3-compatible backend for @open-fms/storage integration tests.
 #
-#   docker compose -f compose.storage.yml up -d --wait
+#   docker compose -f compose.storage.yaml up -d --wait
 #   STORAGE_TEST_ENDPOINT=http://127.0.0.1:9000 \
 #   STORAGE_TEST_ACCESS_KEY_ID=rustfsadmin \
 #   STORAGE_TEST_SECRET_ACCESS_KEY=rustfsadmin \
 #     vp run test
-#   docker compose -f compose.storage.yml down -v
+#   docker compose -f compose.storage.yaml down -v
 #
 # RustFS is a supported backend (StorageBackendKind). MinIO no longer publishes
 # official container images or binary downloads. The test suites create the
@@ -23,8 +23,8 @@ services:
       RUSTFS_SECRET_KEY: rustfsadmin
       RUSTFS_UNSAFE_BYPASS_DISK_CHECK: 'true'
     ports:
-      - '9000:9000'
-      - '9001:9001'
+      - '127.0.0.1:9000:9000'
+      - '127.0.0.1:9001:9001'
     tmpfs:
       - /data
     healthcheck:

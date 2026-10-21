@@ -1,5 +1,5 @@
-import { loadStorageBackend, reconcileFileObjects } from '@open-fms/database';
-import { createStorageAdapter, type S3StorageAdapter } from '@open-fms/storage';
+import { type ReconcileResult, reconcileFileObjects } from '@open-fms/database';
+import { createStorageAdapter, isObjectNotFound, type S3StorageAdapter } from '@open-fms/storage';
 import { defineTask } from 'nitro/task';
 
 function resolveCredentials() {
@@ -17,22 +17,28 @@ function resolveCredentials() {
 
 export default defineTask({
   meta: {
-    name: 'sweep:reconcile',
+    name: 'sweep-reconcile',
     description: 'Compare file rows with storage objects and report mismatches',
   },
-  async run() {
+  async run(): Promise<{ result: ReconcileResult & { skipped?: string } }> {
     const credentials = resolveCredentials();
     if (!credentials) {
-      return { result: { checked: 0, mismatches: [], skipped: 'storage_credentials_missing' } };
+      return {
+        result: {
+          checked: 0,
+          mismatches: [],
+          mismatchCount: 0,
+          truncated: false,
+          storageErrorCount: 0,
+          storageErrors: [],
+          skipped: 'storage_credentials_missing',
+        },
+      };
     }
 
-    const result = await reconcileFileObjects({
-      async storageForBackend(backendId: string): Promise<S3StorageAdapter | null> {
-        const backend = await loadStorageBackend(backendId);
-        if (!backend) {
-          return null;
-        }
-        return createStorageAdapter({
+    const result = await reconcileFileObjects((backend): Promise<S3StorageAdapter> => {
+      return Promise.resolve(
+        createStorageAdapter({
           config: {
             id: backend.id,
             name: backend.name,
@@ -46,9 +52,9 @@ export default defineTask({
             forcePathStyle: backend.kind !== 's3',
           },
           credentials,
-        });
-      },
-    });
+        }),
+      );
+    }, isObjectNotFound);
 
     return { result };
   },
