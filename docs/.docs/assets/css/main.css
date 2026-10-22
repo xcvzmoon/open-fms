@@ -42,7 +42,6 @@ html {
   border: 1px solid var(--ui-border);
   border-radius: 1.25rem;
   overflow: hidden;
-  background: color-mix(in srgb, var(--ui-bg) 92%, var(--ui-primary) 8%);
 }
 
 .included-card {
